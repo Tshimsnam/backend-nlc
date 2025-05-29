@@ -13,4 +13,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/dashboard', function () {
         return response()->json(['message' => 'Bienvenue Admin']);
     })->middleware('role:Administrateur');
+
+    // par rôle Educateur
+    Route::get('/educateur/dashboard', function (){
+        return response()->json(['message'=>'Bienvenue cher educateur']);
+    })->middleware('role:Educateur');
+
+    //par rôle Parent
+
+    Route::get('parent/dashboard', function() {
+        return response()->json(['message'=>'bienvenue cher parent']);
+    })->middleware('role:Parent');
 });
