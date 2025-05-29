@@ -20,8 +20,13 @@ Route::middleware('auth:sanctum')->group(function () {
     })->middleware('role:Educateur');
 
     //par rôle Parent
-
     Route::get('parent/dashboard', function() {
         return response()->json(['message'=>'bienvenue cher parent']);
     })->middleware('role:Parent');
+
+    //
+
+    Route::get('Super Teacher/dashboard', function(){
+        return response()->json(['message'=>'Super Teacher connecté']);
+    })->middleware('role:Super Teacher');
 });
