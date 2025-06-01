@@ -7,8 +7,9 @@ use Illuminate\Support\Carbon;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\DB;
-use App\Notifications\PasswordSetNotification;
 use Illuminate\Database\Seeder;
+use App\Jobs\SendPasswordSetMail;
+
 
 class UserSeeder extends Seeder
 {
@@ -37,7 +38,11 @@ class UserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Envoyer le mail avec le token
-        $user->notify(new PasswordSetNotification($token));
+        // Génère le lien complet à passer au mailable/job
+        $frontendUrl = env('FRONTEND_NLC', 'http://localhost:3000');
+        $url = "{$frontendUrl}/set-password?token={$token}";
+
+        // Envoie le mail via un Job (asynchrone, queue)
+        SendPasswordSetMail::dispatch($user, $url);
     }
 }
