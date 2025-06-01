@@ -41,7 +41,7 @@
 <body>
     <div class="email-container">
         <div class="logo">
-            <img src="https://yourdomain.com/images/logo.png" alt="Never Limit Children" style="height:54px;">
+            <img src="https://www.nlcrdc.org/wp-content/uploads/2023/02/LogoWeb-1.png" alt="Never Limit Children" style="height:54px;">
         </div>
         <div class="content">
             <h1>Bienvenue sur Never Limit Children !</h1>
