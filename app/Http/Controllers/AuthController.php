@@ -38,14 +38,14 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $user_log=$request->input();
-
-
         $user = UserModel::where('email', $request->input("email"))->first();
 
         if (!$user || !Hash::check($request->input("password"), $user->password)) {
             return response()->json(['message' => 'Identifiants invalides'], 401);
         }
+
+        // Charge explicitement les rôles (sauf si tu as mis $with = ['roles'] dans le modèle)
+        $user->load('roles');
 
         $token = $user->createToken('api_token')->plainTextToken;
 
@@ -54,6 +54,7 @@ class AuthController extends Controller
             'token' => $token,
         ]);
     }
+
 
     public function logout(Request $request)
     {
