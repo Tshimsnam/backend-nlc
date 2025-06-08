@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         // On seed d’abord les rôles
         $this->call(RoleSeeder::class);
+        $this->call(AdminSeeder::class);
 
         // Ensuite, l'utilisateur admin + email de set-password (dans UserSeeder)
         $this->call(UserSeeder::class);
