@@ -7,9 +7,10 @@ use App\Http\Controllers\SetPasswordController;
 use App\Http\Controllers\RoleController;
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/users', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/set-password', [SetPasswordController::class, 'setPassword']);
+
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {

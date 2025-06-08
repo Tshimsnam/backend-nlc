@@ -3,10 +3,10 @@
 namespace Database\Seeders; 
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use App\Models\User;
 use App\Models\Role;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 use App\Jobs\SendPasswordSetMail;
 
