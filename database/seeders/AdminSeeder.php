@@ -1,13 +1,14 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders; 
 
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use App\Models\User;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Role;
+use Illuminate\Database\Seeder;
+use App\Jobs\SendPasswordSetMail;
 
 class AdminSeeder extends Seeder
 {
@@ -16,35 +17,34 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        //  on verifie le rôle administrateur si pas encore là si oui on le cree
-        $adminRole = Role::firstOrCreate(['name' => 'Administrateur']);
-        //si l'admin existe deja
-        $admin=User::where('email', 'exemple@gmail.com')->first();
+        // Création utilisateur admin sans mot de passe
+        $user = User::create([
+            'name' => 'Admin Principal',
+            'email' => 'choupole13@gmail.com',
+            'password' => '', // vide ou null, selon ton modèle
+        ]);
 
-        if(!$admin){
-            $admin=User::create([
-                'name'=> 'Admin',
-                'email' => 'exemple@gmail.com',
-                'password' => null,
-            ]);
+        // Assignation du rôle
+        $adminRole = Role::where('name', 'admin')->first();
+        if ($adminRole) {
+            $user->roles()->attach($adminRole);
         }
 
-         // le rôle administrateur est ataché directement
-        $admin->roles()->attach($adminRole->id);
+        // Générer token et l’insérer
+        $token = Str::uuid();
+        DB::table('password_set_tokens')->insert([
+            'user_id' => $user->id,
+            'token' => $token,
+            'expires_at' => Carbon::now()->addDays(7),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-        //on crée le token de réinitialisation
-        $token = Password::createToken($admin);
+        // Génère le lien complet à passer au mailable/job
+        $frontendUrl = env('FRONTEND_NLC', 'http://localhost:3000');
+        $url = "{$frontendUrl}/set-password?token={$token}";
 
-        //le lien vers la route de reinitialisation
-
-        $resetUrl = url("/reset-password/{$token}?email={$admin->email}");
-
-        //le mail pour la modification
-
-        Mail::raw("Bonjour cher Admin, cliquez ici pour définir votre mot de passe: $resetUrl", function ($message) use ($admin) {
-        $message->to($admin->email)->subject('Definir votre mot de passe');
-        });
-
-        echo "lien de réinitialisation envoyé à l'admin : $resetUrl\n";
+        // Envoie le mail via un Job (asynchrone, queue)
+        SendPasswordSetMail::dispatch($user, $url);
     }
 }

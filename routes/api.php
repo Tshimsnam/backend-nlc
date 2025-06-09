@@ -3,14 +3,22 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Middleware\VerifyApiSecret;
+use App\Http\Controllers\SetPasswordController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/users', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/set-password', [SetPasswordController::class, 'setPassword']);
+
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::apiResource('roles', RoleController::class);
+    Route::get('/users', [UserController::class, 'index']);
+
 
     // Route protégée par rôle admin
     Route::get('/admin/dashboard', function () {
