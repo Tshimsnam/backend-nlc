@@ -20,7 +20,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::apiResource('roles', RoleController::class);
     Route::get('/users', [UserController::class, 'index']);
 
-
     // Route protégée par rôle admin
     Route::get('/admin/dashboard', function () {
         return response()->json(['message' => 'Bienvenue Admin']);
@@ -43,6 +42,17 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     })->middleware('role:Super Teacher');
 
       //store de l'enfant
-    Route::post('/enfants', [EnfantController::class, 'store']);
+    Route::post('/store_enfant', [EnfantController::class, 'store']);
+
+     //show des infos de l'enfant
+    Route::get('/show_enfant/{id}', [EnfantController::class, 'show']);
+
+    //index de la liste des enfants
+    Route::get('index_enfant', [EnfantController::class, 'index']);
+
+    //destroy des infos sur l'infant
+    Route::delete('/destroy_enfant/{id}', [EnfantController::class, 'destroy']);
 });
+
+
 

@@ -10,6 +10,28 @@ use Illuminate\Support\Facades\DB;
 
 class EnfantController extends Controller
 {
+
+    public function index(Request $request)
+{
+    try {
+        // pagination par 10
+        $perPage = $request->get('per_page', 10);
+
+        $enfants = Enfant::with(['parents', 'detailsSupplementaires'])->paginate($perPage);
+
+        return response()->json([
+            'message' => 'Liste des enfants paginée récupérée avec succès.',
+            'data' => $enfants
+        ], 200);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la récupération des enfants.',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
     public function store(Request $request)
     {
         $request->validate([
@@ -70,4 +92,42 @@ class EnfantController extends Controller
             ], 500);
         }
     }
+
+    //information complete par enfant
+    public function show($id)
+{
+    $enfant = Enfant::with(['parents', 'detailsSupplementaires'])->find($id);
+
+    if (!$enfant) {
+        return response()->json([
+            'message' => 'Aucune information disponible.'
+        ], 404);
+    }
+
+    return response()->json([
+        'enfant' => $enfant
+    ], 200);
+}
+
+public function destroy($id)
+{
+    try {
+        $enfant = Enfant::with('detailsSupplementaires', 'parents')->findOrFail($id);
+        $enfant->parents()->detach();
+        $enfant->detailsSupplementaires()->delete();
+        $enfant->delete();
+
+        return response()->json([
+            'message' => 'Enfant supprimé avec succès.'
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la suppression.',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
 }
