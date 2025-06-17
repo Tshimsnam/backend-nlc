@@ -41,7 +41,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('Super Teacher/dashboard', function(){
         return response()->json(['message'=>'Super Teacher connecté']);
     })->middleware('role:Super Teacher');
+
+      //store de l'enfant
+    Route::post('/enfants', [EnfantController::class, 'store']);
 });
 
-    //store de l'enfant
-    Route::post('/enfants', [EnfantController::class, 'store']);
