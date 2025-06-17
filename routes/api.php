@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EnfantController;
 use App\Http\Middleware\VerifyApiSecret;
 use App\Http\Controllers\SetPasswordController;
 use App\Http\Controllers\RoleController;
@@ -41,3 +42,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         return response()->json(['message'=>'Super Teacher connecté']);
     })->middleware('role:Super Teacher');
 });
+
+    //store de l'enfant
+    Route::post('/enfants', [EnfantController::class, 'store']);
