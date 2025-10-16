@@ -20,11 +20,15 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',      // *
-        'email',     // *
-        'password',  // *
-        'phone',     // *
-        'status',    // *
+        'name',
+        'first_name',
+        'last_name',
+        'email',
+        'password',
+        'role',
+        'phone',
+        'status',
+        'is_active',
     ];
 
     /**
@@ -37,7 +41,7 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-     public function roles()
+    public function roles()
     {
         return $this->belongsToMany(Role::class);
     }
@@ -45,6 +49,47 @@ class User extends Authenticatable
     public function hasRole(string $roleName): bool
     {
         return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    // Relations NLC
+    public function children()
+    {
+        return $this->hasMany(Child::class, 'parent_id');
+    }
+
+    public function createdPrograms()
+    {
+        return $this->hasMany(Program::class, 'created_by');
+    }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class, 'educator_id');
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'professional_id');
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'recipient_id');
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class, 'author_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
     }
 
     /**

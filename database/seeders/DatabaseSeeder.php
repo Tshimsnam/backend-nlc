@@ -11,11 +11,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // On seed d’abord les rôles
+        // On seed d'abord les rôles
         $this->call(RoleSeeder::class);
         $this->call(AdminSeeder::class);
 
-        // (Optionnel) autres seeders, ex : faker users de test
+        // Seeders pour le système NLC
+        $this->call(SettingSeeder::class);
+        $this->call(ChildSeeder::class);
+        $this->call(ProgramSeeder::class);
+
+        // (Optionnel) autres seeders, ex : faker users de test
         // $this->call(AnotherSeeder::class);
 
         // Exemple de user de test classique (si tu veux garder)
