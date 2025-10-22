@@ -54,4 +54,17 @@ class RoleController extends Controller
 
         return response()->json(null, 204);
     }
+
+    // Récupérer les utilisateurs d'un rôle spécifique
+    public function users($id)
+    {
+        $role = Role::findOrFail($id);
+        $users = $role->users()->get();
+
+        return response()->json([
+            'role' => $role,
+            'users' => $users,
+            'total' => $users->count()
+        ]);
+    }
 }

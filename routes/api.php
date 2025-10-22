@@ -26,6 +26,7 @@ Route::middleware([VerifyApiSecret::class])->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('roles', RoleController::class);
+    Route::get('/roles/{id}/users', [RoleController::class, 'users']);
     Route::get('/users', [UserController::class, 'index']);
 
     // Routes pour les enfants (sauf DELETE)
