@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         $this->call(AdminSeeder::class);
 
         // Seeders pour le système NLC
+        $this->call(ParentSeeder::class);
         $this->call(SettingSeeder::class);
         $this->call(ChildSeeder::class);
         $this->call(ProgramSeeder::class);

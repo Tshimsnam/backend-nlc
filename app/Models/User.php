@@ -55,7 +55,17 @@ class User extends Authenticatable
     // Relations NLC
     public function children()
     {
-        return $this->hasMany(Child::class, 'parent_id');
+        return $this->belongsToMany(Child::class, 'parent_child', 'parent_id', 'child_id')
+                    ->withPivot(['relationship', 'is_primary', 'has_custody', 'emergency_contact_order'])
+                    ->withTimestamps();
+    }
+
+    public function primaryChildren()
+    {
+        return $this->belongsToMany(Child::class, 'parent_child', 'parent_id', 'child_id')
+                    ->wherePivot('is_primary', true)
+                    ->withPivot(['relationship', 'is_primary', 'has_custody', 'emergency_contact_order'])
+                    ->withTimestamps();
     }
 
     public function createdPrograms()

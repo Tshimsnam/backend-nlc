@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Child;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ChildSeeder extends Seeder
@@ -14,51 +14,65 @@ class ChildSeeder extends Seeder
      */
     public function run(): void
     {
-        // Récupérer des parents (utilisateurs avec le rôle parent)
-        $parents = User::where('role', 'parent')->get();
+        // On récupère les parents qui ont le rôle "parent"
+        $parents = User::whereHas('roles', function ($q) {
+            $q->where('name', 'parent');
+        })->get();
 
-        if ($parents->isEmpty()) {
-            $this->command->info('Aucun parent trouvé. Créez d\'abord des utilisateurs avec le rôle parent.');
+        if ($parents->count() < 2) {
+            $this->command->warn('Il faut au moins 2 parents avec le rôle "parent" avant de lancer ChildSeeder.');
             return;
         }
 
-        $children = [
-            [
-                'id' => Str::uuid(),
-                'first_name' => 'Sophie',
-                'last_name' => 'Martin',
-                'date_of_birth' => '2018-05-15',
-                'parent_id' => $parents->first()->id,
-                'medical_info' => 'Aucune allergie connue',
-                'special_needs' => 'Troubles du spectre autistique',
-                'status' => 'active',
-            ],
-            [
-                'id' => Str::uuid(),
-                'first_name' => 'Lucas',
-                'last_name' => 'Dubois',
-                'date_of_birth' => '2019-03-22',
-                'parent_id' => $parents->skip(1)->first()->id ?? $parents->first()->id,
-                'medical_info' => 'Asthme léger',
-                'special_needs' => 'Retard de langage',
-                'status' => 'active',
-            ],
-            [
-                'id' => Str::uuid(),
-                'first_name' => 'Emma',
-                'last_name' => 'Bernard',
-                'date_of_birth' => '2017-11-08',
-                'parent_id' => $parents->skip(2)->first()->id ?? $parents->first()->id,
-                'medical_info' => 'Allergies alimentaires (arachides)',
-                'special_needs' => 'Dyslexie',
-                'status' => 'active',
-            ],
-        ];
+        $parent1 = $parents[0];
+        $parent2 = $parents[1];
 
-        foreach ($children as $child) {
-            Child::create($child);
-        }
+        // 👶 Enfant 1 : 1 seul parent
+        $child1 = Child::create([
+            'id' => Str::uuid(),
+            'first_name' => 'Sophie',
+            'last_name' => 'Martin',
+            'date_of_birth' => '2018-05-15',
+            'medical_info' => 'Aucune allergie connue',
+            'special_needs' => 'Troubles du spectre autistique',
+            'status' => 'active',
+            'gender' => 'female', // si la colonne existe bien
+        ]);
 
-        $this->command->info('Enfants créés avec succès!');
+        $child1->parents()->attach($parent1->id, [
+            'relationship' => 'mother',
+            'is_primary' => true,
+            'has_custody' => true,
+            'emergency_contact_order' => 1,
+        ]);
+
+        // 👶 Enfant 2 : 2 parents
+        $child2 = Child::create([
+            'id' => Str::uuid(),
+            'first_name' => 'Lucas',
+            'last_name' => 'Dubois',
+            'date_of_birth' => '2019-03-22',
+            'medical_info' => 'Asthme léger',
+            'special_needs' => 'Retard de langage',
+            'status' => 'active',
+            'gender' => 'male',
+        ]);
+
+        $child2->parents()->attach([
+            $parent1->id => [
+                'relationship' => 'mother',
+                'is_primary' => true,
+                'has_custody' => true,
+                'emergency_contact_order' => 1,
+            ],
+            $parent2->id => [
+                'relationship' => 'father',
+                'is_primary' => false,
+                'has_custody' => true,
+                'emergency_contact_order' => 2,
+            ],
+        ]);
+
+        $this->command->info('2 enfants créés : un avec 1 parent, un avec 2 parents.');
     }
 }
