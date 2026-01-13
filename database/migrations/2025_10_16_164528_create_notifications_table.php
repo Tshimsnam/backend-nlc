@@ -1,0 +1,35 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('title', 200);
+            $table->text('message');
+            $table->enum('type', ['appointment', 'message', 'report', 'system', 'reminder', 'alert']);
+            $table->boolean('is_read')->default(false);
+            $table->string('action_url', 500)->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('notifications');
+    }
+};
