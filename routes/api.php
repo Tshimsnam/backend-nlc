@@ -16,6 +16,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\EventController;
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
     Route::post('/users', [AuthController::class, 'register']);
@@ -62,6 +63,15 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     //destroy des infos sur l'infant
     Route::delete('/destroy_enfant/{id}', [EnfantController::class, 'destroy']);
+
+    // Événements : lecture pour tous les utilisateurs authentifiés
+    Route::get('/events', [EventController::class, 'index']);
+    Route::get('/events/{id}', [EventController::class, 'show']);
+
+    // Événements : création, modification, suppression réservées à l'admin
+    Route::post('/events', [EventController::class, 'store'])->middleware('admin.only');
+    Route::put('/events/{id}', [EventController::class, 'update'])->middleware('admin.only');
+    Route::delete('/events/{id}', [EventController::class, 'destroy'])->middleware('admin.only');
 });
 
 
