@@ -16,7 +16,27 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\EventController;
+use App\Http\Controllers\API\EventController as APIEventController;
+use App\Http\Controllers\API\RegistrationController;
+use App\Http\Controllers\API\PaymentController;
+use App\Http\Controllers\API\TicketController;
+use App\Http\Controllers\Webhooks\MaxiCashWebhookController;
+use App\Http\Controllers\API\EventPriceController;
+
+// --- Événements (lecture publique)
+Route::get('/events', [APIEventController::class, 'index']);
+Route::get('/events/{event}', [APIEventController::class, 'show']);
+
+// --- Inscription participant & paiement
+Route::post('/register', [RegistrationController::class, 'store']);
+Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
+
+// --- Ticket par numéro (lecture)
+Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
+
+// --- Webhook MaxiCash (vérification signature)
+Route::post('/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
+    ->middleware('maxicash.signature');
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
     Route::post('/users', [AuthController::class, 'register']);
@@ -64,14 +84,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     //destroy des infos sur l'infant
     Route::delete('/destroy_enfant/{id}', [EnfantController::class, 'destroy']);
 
-    // Événements : lecture pour tous les utilisateurs authentifiés
-    Route::get('/events', [EventController::class, 'index']);
-    Route::get('/events/{id}', [EventController::class, 'show']);
-
     // Événements : création, modification, suppression réservées à l'admin
-    Route::post('/events', [EventController::class, 'store'])->middleware('admin.only');
-    Route::put('/events/{id}', [EventController::class, 'update'])->middleware('admin.only');
-    Route::delete('/events/{id}', [EventController::class, 'destroy'])->middleware('admin.only');
+    Route::post('/events', [APIEventController::class, 'store'])->middleware('admin.only');
+    Route::put('/events/{event}', [APIEventController::class, 'update'])->middleware('admin.only');
+    Route::delete('/events/{event}', [APIEventController::class, 'destroy'])->middleware('admin.only');
+
+    // Tarifs par événement (admin)
+    Route::get('/events/{event}/prices', [EventPriceController::class, 'index'])->middleware('admin.only');
+    Route::post('/events/{event}/prices', [EventPriceController::class, 'store'])->middleware('admin.only');
+    Route::put('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'update'])->middleware('admin.only');
+    Route::delete('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'destroy'])->middleware('admin.only');
 });
 
 

@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'maxicash' => [
+        'merchant_id' => env('MAXICASH_MERCHANT_ID'),
+        'merchant_password' => env('MAXICASH_MERCHANT_PASSWORD'),
+        'webhook_secret' => env('MAXICASH_WEBHOOK_SECRET'),
+        'sandbox' => env('MAXICASH_SANDBOX', true),
+        'api_url' => env('MAXICASH_API_URL', 'https://webapi.maxicashapp.com'),
+    ],
+
 ];

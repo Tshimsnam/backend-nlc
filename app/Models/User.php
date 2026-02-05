@@ -103,6 +103,11 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function eventParticipations()
+    {
+        return $this->hasMany(Participant::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
