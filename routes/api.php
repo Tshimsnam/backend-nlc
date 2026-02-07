@@ -25,7 +25,9 @@ use App\Http\Controllers\API\EventPriceController;
 
 // --- Événements (lecture publique)
 Route::get('/events', [APIEventController::class, 'index']);
-Route::get('/events/{event}', [APIEventController::class, 'show']);
+Route::get('/events/{event:slug}', [APIEventController::class, 'show']);
+
+
 
 // --- Inscription participant & paiement
 Route::post('/register', [RegistrationController::class, 'store']);

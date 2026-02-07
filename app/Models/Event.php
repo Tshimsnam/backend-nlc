@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
+    protected $with = ['eventPrices'];
+
     protected $fillable = [
         'title',
         'slug',

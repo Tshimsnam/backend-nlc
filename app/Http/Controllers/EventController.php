@@ -31,11 +31,21 @@ class EventController extends Controller
     /**
      * Afficher un événement.
      */
-    public function show(string $id)
+    // public function show(string $id)
+    // {
+    //     $event = Event::findOrFail($id);
+    //     return response()->json($event);
+    // }
+
+    public function show(string $slug)
     {
-        $event = Event::findOrFail($id);
+        $event = Event::where('slug', $slug)
+            ->with('event_prices')
+            ->firstOrFail();
+    
         return response()->json($event);
     }
+    
 
     /**
      * Créer un événement (admin uniquement).
