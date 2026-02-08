@@ -1,0 +1,79 @@
+╔═══════════════════════════════════════════════════════════════╗
+║              COMMANDES ESSENTIELLES - BACKEND                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🚀 DÉMARRER LE BACKEND
+-----------
+php artisan serve --host=192.168.241.9 --port=8000
+
+
+✅ VÉRIFIER LA CONFIGURATION
+-----------
+php test-cloudflare-setup.php
+
+
+🧪 TESTER UN PAIEMENT
+-----------
+php test-ticket-payment.php
+
+
+🔍 VÉRIFIER LES LOGS
+-----------
+tail -f storage/logs/laravel.log
+
+
+📋 VÉRIFIER .ENV
+-----------
+grep MAXICASH .env
+
+
+🌐 URLS IMPORTANTES
+-----------
+Frontend Cloudflare : https://prot-momentum-numerous-sms.trycloudflare.com
+Backend Local       : http://192.168.241.9:8000
+API Test            : http://192.168.241.9:8000/api/test
+
+
+💡 AVANTAGE CLOUDFLARE
+-----------
+✅ PAS de mot de passe requis
+✅ MaxiCash peut accéder directement
+✅ Plus rapide que LocalTunnel
+✅ Plus stable
+
+
+⚠️  SI L'URL CLOUDFLARE CHANGE
+-----------
+1. Copier la nouvelle URL du terminal Cloudflare
+2. Mettre à jour .env :
+   FRONTEND_WEBSITE_URL=https://nouvelle-url.trycloudflare.com
+   FRONTEND_NLC=https://nouvelle-url.trycloudflare.com
+   MAXICASH_SUCCESS_URL=https://nouvelle-url.trycloudflare.com/paiement/success
+   MAXICASH_FAILURE_URL=https://nouvelle-url.trycloudflare.com/paiement/failure
+   MAXICASH_CANCEL_URL=https://nouvelle-url.trycloudflare.com/paiement/cancel
+3. Redémarrer Laravel (Ctrl+C puis relancer)
+
+
+🎯 FLUX COMPLET
+-----------
+1. Frontend tourne avec Cloudflare Tunnel ✅
+2. Démarrer Backend Laravel ⏳
+3. Tester la configuration ⏳
+4. Tester un paiement ⏳
+5. Vérifier que l'erreur a disparu ⏳
+
+
+📚 DOCUMENTATION
+-----------
+README_FINAL.md              - Résumé complet
+DEMARRAGE_CLOUDFLARE.md      - Guide de démarrage
+BACKEND_CLOUDFLARE_SETUP.md  - Configuration détaillée
+
+
+🎉 PRÊT À TESTER!
+-----------
+Démarrer Laravel :
+php artisan serve --host=192.168.241.9 --port=8000
+
+Puis tester :
+php test-ticket-payment.php

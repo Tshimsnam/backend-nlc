@@ -13,7 +13,7 @@ class EventPriceController extends Controller
 {
     public function index(Event $event): JsonResponse
     {
-        $prices = $event->eventPrices;
+        $prices = $event->event_prices;
 
         return response()->json($prices);
     }

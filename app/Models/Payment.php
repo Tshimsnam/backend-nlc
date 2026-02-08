@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
@@ -33,10 +32,5 @@ class Payment extends Model
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);
-    }
-
-    public function ticket(): HasOne
-    {
-        return $this->hasOne(Ticket::class);
     }
 }

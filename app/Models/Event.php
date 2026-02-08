@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
-    protected $with = ['eventPrices'];
+    use HasFactory;
+
+    protected $with = ['event_prices'];
 
     protected $fillable = [
         'title',
@@ -23,24 +26,16 @@ class Event extends Model
         'status',
         'image',
         'agenda',
-        'price',
         'capacity',
-        'registered',
     ];
 
     protected $casts = [
         'agenda' => 'array',
-        'price' => 'array',
     ];
 
-    public function eventPrices(): HasMany
+    public function event_prices(): HasMany
     {
         return $this->hasMany(EventPrice::class);
-    }
-
-    public function participants(): HasMany
-    {
-        return $this->hasMany(Participant::class);
     }
 
     public function tickets(): HasMany

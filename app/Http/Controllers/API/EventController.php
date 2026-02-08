@@ -13,7 +13,7 @@ class EventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Event::with('eventPrices');
+        $query = Event::with('event_prices');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -22,14 +22,14 @@ class EventController extends Controller
             $query->where('type', $request->type);
         }
 
-        $events = $query->orderBy('date')->paginate(15);
+        $events = $query->orderBy('date')->get();
 
         return response()->json($events);
     }
 
     public function show(Event $event): JsonResponse
     {
-        $event->load('eventPrices');
+        $event->load('event_prices');
 
         return response()->json($event);
     }
@@ -44,7 +44,7 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Événement créé avec succès',
-            'data' => $event->load('eventPrices'),
+            'data' => $event->load('event_prices'),
         ], 201);
     }
 
@@ -54,7 +54,7 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Événement mis à jour avec succès',
-            'data' => $event->fresh()->load('eventPrices'),
+            'data' => $event->fresh()->load('event_prices'),
         ]);
     }
 

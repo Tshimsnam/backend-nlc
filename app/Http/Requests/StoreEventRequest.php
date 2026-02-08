@@ -31,9 +31,7 @@ class StoreEventRequest extends FormRequest
             'agenda.*.day' => ['required_with:agenda', 'string'],
             'agenda.*.time' => ['required_with:agenda', 'string'],
             'agenda.*.activities' => ['required_with:agenda', 'string'],
-            'price' => ['nullable', 'array'],
             'capacity' => ['nullable', 'integer', 'min:0'],
-            'registered' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

@@ -27,17 +27,27 @@ use App\Http\Controllers\API\EventPriceController;
 Route::get('/events', [APIEventController::class, 'index']);
 Route::get('/events/{event:slug}', [APIEventController::class, 'show']);
 
+// --- Prix des événements (lecture publique pour affichage frontend)
+Route::get('/events/{event}/prices', [EventPriceController::class, 'index']);
 
+// --- Inscription à un événement (création ticket) + modes de paiement
+Route::post('/events/{event}/register', [TicketController::class, 'store']);
+Route::get('/payment-modes', [TicketController::class, 'paymentModes']);
 
-// --- Inscription participant & paiement
-Route::post('/register', [RegistrationController::class, 'store']);
+// --- Test route
+Route::get('/test', function() {
+    return response()->json(['message' => 'API fonctionne!', 'timestamp' => now()]);
+});
+
+// --- Inscription participant & paiement (flux alternatif - DÉSACTIVÉ, utiliser /events/{event}/register)
+// Route::post('/register', [RegistrationController::class, 'store']);
 Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 
-// --- Ticket par numéro (lecture)
+// --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
 
-// --- Webhook MaxiCash (vérification signature)
-Route::post('/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
+// --- Webhook MaxiCash (POST ou GET selon doc MaxiCash)
+Route::match(['get', 'post'], '/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
     ->middleware('maxicash.signature');
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
@@ -91,8 +101,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::put('/events/{event}', [APIEventController::class, 'update'])->middleware('admin.only');
     Route::delete('/events/{event}', [APIEventController::class, 'destroy'])->middleware('admin.only');
 
-    // Tarifs par événement (admin)
-    Route::get('/events/{event}/prices', [EventPriceController::class, 'index'])->middleware('admin.only');
+    // Tarifs par événement (admin) - création, modification, suppression uniquement
     Route::post('/events/{event}/prices', [EventPriceController::class, 'store'])->middleware('admin.only');
     Route::put('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'update'])->middleware('admin.only');
     Route::delete('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'destroy'])->middleware('admin.only');

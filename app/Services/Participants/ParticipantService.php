@@ -24,7 +24,7 @@ class ParticipantService
     {
         return DB::transaction(function () use ($data) {
             $event = Event::findOrFail($data['event_id']);
-            $price = $event->eventPrices()
+            $price = $event->event_prices()
                 ->where('category', $data['category'])
                 ->where('duration_type', $data['duration_type'])
                 ->first();
@@ -61,8 +61,17 @@ class ParticipantService
                 'participant_id' => $participant->id,
                 'payment_id' => $payment->id,
                 'event_id' => $event->id,
-                'ticket_number' => $this->ticketService->generateTicketNumber($event),
-                'status' => TicketStatus::Pending,
+                'event_price_id' => $price->id,
+                'full_name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+                'category' => $data['category'],
+                'days' => 1,
+                'amount' => $price->amount,
+                'currency' => $price->currency,
+                'reference' => $this->ticketService->generateTicketNumber($event),
+                'pay_type' => 'maxicash',
+                'payment_status' => 'pending',
             ]);
 
             return $participant->load(['payment', 'ticket', 'event']);

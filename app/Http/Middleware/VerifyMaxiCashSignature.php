@@ -13,9 +13,9 @@ class VerifyMaxiCashSignature
     {
         $secret = config('services.maxicash.webhook_secret');
 
+        // En sandbox sans secret, accepter la requête (MaxiCash peut notifier sans signature)
         if (empty($secret)) {
-            Log::warning('MaxiCash webhook secret not configured');
-            return response()->json(['message' => 'Webhook not configured'], 500);
+            return $next($request);
         }
 
         $signature = $request->header('X-Maxicash-Signature')

@@ -2,39 +2,43 @@
 
 namespace App\Models;
 
-use App\Enums\TicketStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ticket extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'participant_id',
-        'payment_id',
         'event_id',
-        'ticket_number',
-        'status',
+        'event_price_id',
+        'full_name',
+        'email',
+        'phone',
+        'category',
+        'days',
+        'amount',
+        'currency',
+        'reference',
+        'pay_type',
+        'pay_sub_type',
+        'payment_status',
+        'gateway_log_id',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'status' => TicketStatus::class,
-        ];
-    }
-
-    public function participant(): BelongsTo
-    {
-        return $this->belongsTo(Participant::class);
-    }
-
-    public function payment(): BelongsTo
-    {
-        return $this->belongsTo(Payment::class);
-    }
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'days' => 'integer',
+    ];
 
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
+    }
+
+    public function price(): BelongsTo
+    {
+        return $this->belongsTo(EventPrice::class, 'event_price_id');
     }
 }
