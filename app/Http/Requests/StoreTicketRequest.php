@@ -19,7 +19,7 @@ class StoreTicketRequest extends FormRequest
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:50', 'min:9'],
             'days' => ['nullable', 'integer', 'min:1'],
-            'pay_type' => ['required', 'string', 'max:50', 'in:mobile_money,credit_card,maxicash,paypal'],
+            'pay_type' => ['required', 'string', 'max:50', 'in:online,cash'],
             'pay_sub_type' => ['nullable', 'string', 'max:50'],
             'success_url' => ['nullable', 'string', 'url', 'max:500'],
             'cancel_url' => ['nullable', 'string', 'url', 'max:500'],

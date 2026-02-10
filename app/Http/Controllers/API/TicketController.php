@@ -15,41 +15,23 @@ use Illuminate\Support\Str;
 class TicketController extends Controller
 {
     /**
-     * Tous les paiements passent par MaxiCash.
-     * - Mobile Money : le participant doit indiquer son numéro de téléphone (pour le prélèvement).
-     * - Visa / Carte bancaire / PayPal : le participant remplit les informations sur la page sécurisée MaxiCash après redirection.
+     * Deux modes de paiement:
+     * - En ligne : via MaxiCash (Mobile Money, Carte, PayPal, etc.)
+     * - En caisse : génération QR code pour paiement physique
      */
     public function paymentModes(): JsonResponse
     {
         return response()->json([
             [
-                'id' => 'mobile_money',
-                'label' => 'Mobile Money',
-                'description' => 'Indiquez votre numéro de téléphone pour le prélèvement.',
-                'requires_phone' => true,
-                'sub_modes' => [
-                    ['id' => 'mpesa', 'label' => 'Vodacom M-Pesa'],
-                    ['id' => 'orange', 'label' => 'Orange Money'],
-                    ['id' => 'airtel', 'label' => 'Airtel Money'],
-                    ['id' => 'p_mobile', 'label' => 'P Mobile'],
-                ],
-            ],
-            [
-                'id' => 'credit_card',
-                'label' => 'Carte bancaire (Visa / MasterCard)',
-                'description' => 'Vous serez redirigé vers MaxiCash pour saisir les informations de votre carte.',
+                'id' => 'online',
+                'label' => 'Paiement en ligne',
+                'description' => 'Payez en ligne via MaxiCash (Mobile Money, Carte bancaire, PayPal, etc.)',
                 'requires_phone' => false,
             ],
             [
-                'id' => 'maxicash',
-                'label' => 'MaxiCash Wallet',
-                'description' => 'Paiement avec votre portefeuille MaxiCash.',
-                'requires_phone' => false,
-            ],
-            [
-                'id' => 'paypal',
-                'label' => 'PayPal',
-                'description' => 'Vous serez redirigé vers MaxiCash puis PayPal pour finaliser le paiement.',
+                'id' => 'cash',
+                'label' => 'Paiement en caisse',
+                'description' => 'Générez votre QR code et payez directement à la caisse.',
                 'requires_phone' => false,
             ],
         ]);
@@ -75,9 +57,37 @@ class TicketController extends Controller
             'currency' => $price->currency,
             'reference' => strtoupper(Str::random(10)),
             'pay_type' => $validated['pay_type'],
-            'pay_sub_type' => $validated['pay_sub_type'] ?? null,
+            'pay_sub_type' => null, // Plus besoin de sous-types
+            'payment_status' => $validated['pay_type'] === 'cash' ? 'pending_cash' : 'pending',
         ]);
 
+        // Si paiement en caisse, retourner directement les infos du ticket avec QR code
+        if ($validated['pay_type'] === 'cash') {
+            return response()->json([
+                'success' => true,
+                'payment_mode' => 'cash',
+                'ticket' => [
+                    'reference' => $ticket->reference,
+                    'full_name' => $ticket->full_name,
+                    'email' => $ticket->email,
+                    'phone' => $ticket->phone,
+                    'event' => $event->title,
+                    'category' => $ticket->category,
+                    'amount' => $ticket->amount,
+                    'currency' => $ticket->currency,
+                    'status' => 'pending_cash',
+                    'qr_data' => json_encode([
+                        'reference' => $ticket->reference,
+                        'event_id' => $event->id,
+                        'amount' => $ticket->amount,
+                        'currency' => $ticket->currency,
+                    ]),
+                ],
+                'message' => 'Ticket créé avec succès. Présentez ce QR code à la caisse pour finaliser votre paiement.',
+            ], 201);
+        }
+
+        // Sinon, continuer avec le flux MaxiCash normal
         $baseUrl = rtrim(config('app.url'), '/');
         $frontendUrl = rtrim(env('FRONTEND_NLC', $baseUrl), '/');
         
@@ -119,6 +129,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
+            'payment_mode' => 'online',
             'reference' => $ticket->reference,
             'redirect_url' => $result['redirect_url'],
             'log_id' => $result['log_id'] ?? null,
@@ -144,5 +155,54 @@ class TicketController extends Controller
         }
 
         return response()->json($ticket);
+    }
+
+    /**
+     * Valider un paiement en caisse (admin uniquement).
+     */
+    public function validateCashPayment(Request $request, string $ticketNumber): JsonResponse
+    {
+        $ticket = Ticket::where('reference', $ticketNumber)->firstOrFail();
+
+        if ($ticket->payment_status !== 'pending_cash') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce ticket n\'est pas en attente de paiement en caisse.',
+                'current_status' => $ticket->payment_status,
+            ], 400);
+        }
+
+        $ticket->update([
+            'payment_status' => 'completed',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Paiement en caisse validé avec succès.',
+            'ticket' => [
+                'reference' => $ticket->reference,
+                'full_name' => $ticket->full_name,
+                'amount' => $ticket->amount,
+                'currency' => $ticket->currency,
+                'status' => $ticket->payment_status,
+            ],
+        ]);
+    }
+
+    /**
+     * Lister tous les tickets en attente de paiement en caisse (admin uniquement).
+     */
+    public function pendingCashPayments(): JsonResponse
+    {
+        $tickets = Ticket::with(['event', 'price'])
+            ->where('payment_status', 'pending_cash')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'count' => $tickets->count(),
+            'tickets' => $tickets,
+        ]);
     }
 }

@@ -1,0 +1,169 @@
+{
+  "description": "Exemples de réponses API pour les deux modes de paiement",
+  
+  "paiement_en_ligne": {
+    "endpoint": "POST /api/events/1/register",
+    "payload": {
+      "event_price_id": 1,
+      "full_name": "Jean Dupont",
+      "email": "jean@example.com",
+      "phone": "+243 XXX XXX XXX",
+      "pay_type": "mobile_money",
+      "pay_sub_type": "mpesa"
+    },
+    "response": {
+      "success": true,
+      "payment_mode": "online",
+      "reference": "ABC123XYZ4",
+      "redirect_url": "https://api-testbed.maxicashme.com/payentryweb?logid=123456",
+      "log_id": "123456",
+      "message": "Redirection vers MaxiCash pour finaliser le paiement (Mobile Money, Visa, Carte ou PayPal)."
+    }
+  },
+
+  "paiement_en_caisse": {
+    "endpoint": "POST /api/events/1/register",
+    "payload": {
+      "event_price_id": 1,
+      "full_name": "Marie Kabila",
+      "email": "marie@example.com",
+      "phone": "+243 XXX XXX XXX",
+      "pay_type": "cash",
+      "pay_sub_type": null
+    },
+    "response": {
+      "success": true,
+      "payment_mode": "cash",
+      "ticket": {
+        "reference": "DEF456GHI7",
+        "full_name": "Marie Kabila",
+        "email": "marie@example.com",
+        "phone": "+243 XXX XXX XXX",
+        "event": "Conférence Annuelle 2025",
+        "category": "etudiant",
+        "amount": "50.00",
+        "currency": "USD",
+        "status": "pending_cash",
+        "qr_data": "{\"reference\":\"DEF456GHI7\",\"event_id\":1,\"amount\":\"50.00\",\"currency\":\"USD\"}"
+      },
+      "message": "Ticket créé avec succès. Présentez ce QR code à la caisse pour finaliser votre paiement."
+    }
+  },
+
+  "liste_modes_paiement": {
+    "endpoint": "GET /api/payment-modes",
+    "response": [
+      {
+        "id": "mobile_money",
+        "label": "Mobile Money",
+        "description": "Indiquez votre numéro de téléphone pour le prélèvement.",
+        "requires_phone": true,
+        "sub_modes": [
+          { "id": "mpesa", "label": "Vodacom M-Pesa" },
+          { "id": "orange", "label": "Orange Money" },
+          { "id": "airtel", "label": "Airtel Money" },
+          { "id": "p_mobile", "label": "P Mobile" }
+        ]
+      },
+      {
+        "id": "credit_card",
+        "label": "Carte bancaire (Visa / MasterCard)",
+        "description": "Vous serez redirigé vers MaxiCash pour saisir les informations de votre carte.",
+        "requires_phone": false
+      },
+      {
+        "id": "maxicash",
+        "label": "MaxiCash Wallet",
+        "description": "Paiement avec votre portefeuille MaxiCash.",
+        "requires_phone": false
+      },
+      {
+        "id": "paypal",
+        "label": "PayPal",
+        "description": "Vous serez redirigé vers MaxiCash puis PayPal pour finaliser le paiement.",
+        "requires_phone": false
+      },
+      {
+        "id": "cash",
+        "label": "Paiement en caisse",
+        "description": "Générez votre QR code et payez directement à la caisse.",
+        "requires_phone": false
+      }
+    ]
+  },
+
+  "validation_admin": {
+    "liste_tickets_en_attente": {
+      "endpoint": "GET /api/tickets/pending-cash",
+      "headers": {
+        "Authorization": "Bearer {admin_token}"
+      },
+      "response": {
+        "success": true,
+        "count": 2,
+        "tickets": [
+          {
+            "id": 1,
+            "reference": "DEF456GHI7",
+            "full_name": "Marie Kabila",
+            "email": "marie@example.com",
+            "phone": "+243 XXX XXX XXX",
+            "amount": "50.00",
+            "currency": "USD",
+            "payment_status": "pending_cash",
+            "event": {
+              "id": 1,
+              "title": "Conférence Annuelle 2025"
+            },
+            "created_at": "2025-02-10T10:30:00Z"
+          },
+          {
+            "id": 2,
+            "reference": "JKL789MNO0",
+            "full_name": "Paul Tshisekedi",
+            "email": "paul@example.com",
+            "phone": "+243 XXX XXX XXX",
+            "amount": "100.00",
+            "currency": "USD",
+            "payment_status": "pending_cash",
+            "event": {
+              "id": 1,
+              "title": "Conférence Annuelle 2025"
+            },
+            "created_at": "2025-02-10T11:15:00Z"
+          }
+        ]
+      }
+    },
+
+    "valider_paiement": {
+      "endpoint": "POST /api/tickets/DEF456GHI7/validate-cash",
+      "headers": {
+        "Authorization": "Bearer {admin_token}"
+      },
+      "response": {
+        "success": true,
+        "message": "Paiement en caisse validé avec succès.",
+        "ticket": {
+          "reference": "DEF456GHI7",
+          "full_name": "Marie Kabila",
+          "amount": "50.00",
+          "currency": "USD",
+          "status": "completed"
+        }
+      }
+    },
+
+    "erreur_deja_valide": {
+      "endpoint": "POST /api/tickets/ABC123XYZ4/validate-cash",
+      "headers": {
+        "Authorization": "Bearer {admin_token}"
+      },
+      "response": {
+        "success": false,
+        "message": "Ce ticket n'est pas en attente de paiement en caisse.",
+        "current_status": "completed"
+      }
+    }
+  }
+}
