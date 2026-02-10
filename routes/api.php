@@ -105,6 +105,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/events/{event}/prices', [EventPriceController::class, 'store'])->middleware('admin.only');
     Route::put('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'update'])->middleware('admin.only');
     Route::delete('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'destroy'])->middleware('admin.only');
+
+    // Validation des paiements en caisse (admin uniquement)
+    Route::get('/tickets/pending-cash', [TicketController::class, 'pendingCashPayments'])->middleware('admin.only');
+    Route::post('/tickets/{ticketNumber}/validate-cash', [TicketController::class, 'validateCashPayment'])->middleware('admin.only');
 });
 
 

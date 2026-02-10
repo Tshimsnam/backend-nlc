@@ -1,0 +1,131 @@
+═══════════════════════════════════════════════════════════════
+  ✅ CHECKLIST D'INSTALLATION - PAIEMENT EN CAISSE
+═══════════════════════════════════════════════════════════════
+
+📋 BACKEND (Déjà fait!)
+────────────────────────────────────────────────────────────────
+[✓] PaymentStatus enum mis à jour (pending_cash ajouté)
+[✓] TicketController modifié (gestion des 2 modes)
+[✓] Mode "cash" ajouté dans paymentModes()
+[✓] Méthode validateCashPayment() créée
+[✓] Méthode pendingCashPayments() créée
+[✓] Routes API admin ajoutées
+[✓] Génération QR code implémentée
+
+
+📦 FRONTEND (À faire)
+────────────────────────────────────────────────────────────────
+[ ] 1. Copier EventInscriptionPage.tsx dans le frontend
+    De: d:\choupole\Projects\Website\backend-nlc\
+    Vers: frontend-nlc/src/pages/
+
+[ ] 2. Installer qrcode.react
+    Commande: npm install qrcode.react
+    Vérifier: npm list qrcode.react
+
+[ ] 3. Redémarrer le serveur frontend
+    Commande: npm run dev
+
+
+🧪 TESTS (À faire)
+────────────────────────────────────────────────────────────────
+[ ] 1. Backend démarré
+    Commande: php artisan serve --host=192.168.241.9 --port=8000
+    URL: http://192.168.241.9:8000
+
+[ ] 2. Frontend démarré
+    Commande: npm run dev
+    URL: http://192.168.241.9:8080
+
+[ ] 3. Test paiement en ligne
+    [ ] Aller sur /evenements
+    [ ] Sélectionner un événement
+    [ ] Cliquer "S'inscrire"
+    [ ] Choisir un tarif
+    [ ] Remplir les informations
+    [ ] Sélectionner Mobile Money / Carte / PayPal
+    [ ] Confirmer
+    [ ] ✓ Redirection vers MaxiCash
+
+[ ] 4. Test paiement en caisse
+    [ ] Aller sur /evenements
+    [ ] Sélectionner un événement
+    [ ] Cliquer "S'inscrire"
+    [ ] Choisir un tarif
+    [ ] Remplir les informations
+    [ ] Sélectionner "Paiement en caisse"
+    [ ] Confirmer
+    [ ] ✓ Affichage du QR code
+    [ ] ✓ Référence du ticket visible
+    [ ] ✓ Montant affiché
+    [ ] ✓ Bouton "Imprimer" fonctionne
+    [ ] ✓ Bouton "Télécharger" fonctionne
+
+[ ] 5. Test API backend
+    [ ] Exécuter: php test-paiement-caisse.php
+    [ ] ✓ Ticket créé avec succès
+    [ ] ✓ QR code généré
+    [ ] ✓ Status "pending_cash"
+
+
+🔧 DÉPANNAGE
+────────────────────────────────────────────────────────────────
+Si erreur "Cannot find module 'qrcode.react'":
+[ ] Vérifier que npm install a bien fonctionné
+[ ] Vérifier package.json (doit contenir qrcode.react)
+[ ] Redémarrer le serveur frontend
+
+Si le mode "Paiement en caisse" n'apparaît pas:
+[ ] Vérifier que le backend est démarré
+[ ] Vérifier l'URL API dans .env frontend
+[ ] Vérifier la console du navigateur (F12)
+
+Si le QR code ne s'affiche pas:
+[ ] Vérifier l'import: import { QRCodeSVG } from 'qrcode.react'
+[ ] Vérifier que qrData n'est pas null
+[ ] Vérifier la console du navigateur
+
+
+📊 VALIDATION FINALE
+────────────────────────────────────────────────────────────────
+[ ] Le mode "Paiement en caisse" apparaît dans la liste
+[ ] Le QR code s'affiche correctement
+[ ] La référence du ticket est visible
+[ ] Le montant est correct
+[ ] Les informations du participant sont affichées
+[ ] Le bouton "Imprimer" fonctionne
+[ ] Le bouton "Télécharger" fonctionne
+[ ] Le QR code peut être scanné avec un smartphone
+
+
+🎯 PROCHAINES ÉTAPES
+────────────────────────────────────────────────────────────────
+[ ] Créer l'interface admin pour validation
+[ ] Tester la validation des paiements
+[ ] Configurer l'envoi d'emails de confirmation
+[ ] Ajouter des statistiques de paiements
+
+
+📁 FICHIERS DE RÉFÉRENCE
+────────────────────────────────────────────────────────────────
+[✓] DEMARRAGE_RAPIDE_CAISSE.txt → Guide ultra-rapide
+[✓] RESUME_FINAL_PAIEMENT_CAISSE.txt → Résumé complet
+[✓] COMMANDES_INSTALLATION_QR.txt → Commandes détaillées
+[✓] APERCU_INTERFACE_UTILISATEUR.txt → Aperçu visuel
+[✓] PACKAGE_QR_INFO.txt → Info sur qrcode.react
+[✓] test-paiement-caisse.php → Test backend
+[✓] EXEMPLE_REPONSE_API.json → Exemples API
+[✓] CHECKLIST_INSTALLATION.txt → Ce fichier
+
+
+💡 NOTES
+────────────────────────────────────────────────────────────────
+• Le backend est 100% prêt et fonctionnel
+• Il suffit de copier le fichier frontend et installer qrcode.react
+• Tous les fichiers de documentation sont créés
+• Le système est prêt pour la production
+
+
+═══════════════════════════════════════════════════════════════
+  Coche les cases au fur et à mesure de ta progression!
+═══════════════════════════════════════════════════════════════

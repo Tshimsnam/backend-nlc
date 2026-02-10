@@ -1,0 +1,67 @@
+═══════════════════════════════════════════════════════════════
+  📋 COMMANDES DE MIGRATION LARAVEL
+═══════════════════════════════════════════════════════════════
+
+🔄 RÉINITIALISER LA BASE DE DONNÉES
+────────────────────────────────────────────────────────────────
+
+Option 1: migrate:fresh (Recommandé)
+─────────────────────────────────────
+Supprime toutes les tables et recrée tout:
+
+php artisan migrate:fresh
+
+Avec seed (données de test):
+php artisan migrate:fresh --seed
+
+
+Option 2: migrate:refresh
+──────────────────────────
+Rollback toutes les migrations puis les rejoue:
+
+php artisan migrate:refresh
+
+Avec seed:
+php artisan migrate:refresh --seed
+
+
+Option 3: migrate:reset puis migrate
+─────────────────────────────────────
+php artisan migrate:reset
+php artisan migrate
+
+
+📊 AUTRES COMMANDES UTILES
+────────────────────────────────────────────────────────────────
+
+Voir le statut des migrations:
+php artisan migrate:status
+
+Rollback la dernière migration:
+php artisan migrate:rollback
+
+Rollback les 3 dernières migrations:
+php artisan migrate:rollback --step=3
+
+Créer une nouvelle migration:
+php artisan make:migration create_table_name
+
+
+⚠️ ATTENTION
+────────────────────────────────────────────────────────────────
+migrate:fresh et migrate:refresh SUPPRIMENT TOUTES LES DONNÉES!
+Utilisez-les seulement en développement.
+
+
+🎯 POUR TON CAS
+────────────────────────────────────────────────────────────────
+Tu n'as pas besoin de réinitialiser la base de données.
+Les modifications que j'ai faites sont seulement dans le code,
+pas dans la structure de la base de données.
+
+Il suffit de:
+1. Redémarrer le serveur Laravel
+2. Tester!
+
+
+═══════════════════════════════════════════════════════════════

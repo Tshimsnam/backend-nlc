@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Printer, Download } from "lucide-react";
+import { QRCodeSVG } from 'qrcode.react';
 import axios from "axios";
 
 // Types
@@ -50,7 +51,6 @@ interface RegistrationFormData {
   phone: string;
   days: number;
   pay_type: string;
-  pay_sub_type: string;
 }
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -67,6 +67,11 @@ const EventInscriptionPage = () => {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
+  // NOUVEAUX ÉTATS pour paiement en caisse
+  const [qrData, setQrData] = useState<string | null>(null);
+  const [ticketData, setTicketData] = useState<any>(null);
+  const [paymentMode, setPaymentMode] = useState<'online' | 'cash' | null>(null);
+
   const [formData, setFormData] = useState<RegistrationFormData>({
     event_price_id: 0,
     full_name: "",
@@ -74,7 +79,6 @@ const EventInscriptionPage = () => {
     phone: "",
     days: 1,
     pay_type: "",
-    pay_sub_type: "",
   });
 
   // Charger l'événement et les modes de paiement
@@ -127,11 +131,7 @@ const EventInscriptionPage = () => {
   };
 
   const handlePaymentTypeChange = (payType: string) => {
-    setFormData((prev) => ({ ...prev, pay_type: payType, pay_sub_type: "" }));
-  };
-
-  const handlePaymentSubTypeChange = (subType: string) => {
-    setFormData((prev) => ({ ...prev, pay_sub_type: subType }));
+    setFormData((prev) => ({ ...prev, pay_type: payType }));
   };
 
   const validateStep1 = () => {
@@ -143,15 +143,7 @@ const EventInscriptionPage = () => {
   };
 
   const validateStep3 = () => {
-    const selectedMode = paymentModes.find((m) => m.id === formData.pay_type);
-    if (!selectedMode) return false;
-    
-    // Si le mode a des sous-modes, vérifier qu'un sous-mode est sélectionné
-    if (selectedMode.sub_modes && selectedMode.sub_modes.length > 0) {
-      return !!formData.pay_sub_type;
-    }
-    
-    return true;
+    return !!formData.pay_type;
   };
 
   const handleNextStep = () => {
@@ -184,19 +176,21 @@ const EventInscriptionPage = () => {
         payload
       );
 
-      if (res.data.success && res.data.redirect_url) {
-        // Rediriger vers MaxiCash
-        window.location.href = res.data.redirect_url;
-      } else {
-        // Afficher le message d'erreur avec les détails du ticket si disponibles
-        const errorMsg = res.data.message || "Erreur lors de l'initialisation du paiement";
-        const ticketRef = res.data.ticket?.reference;
-        
-        if (ticketRef) {
-          setError(`${errorMsg}\n\nRéférence du ticket: ${ticketRef}\n\nVeuillez contacter le support si le problème persiste.`);
+      if (res.data.success) {
+        if (res.data.payment_mode === 'cash') {
+          // Paiement en caisse - afficher QR code
+          setPaymentMode('cash');
+          setTicketData(res.data.ticket);
+          setQrData(res.data.ticket.qr_data);
+          setStep(5); // Nouvelle étape pour afficher le QR code
+        } else if (res.data.redirect_url) {
+          // Paiement en ligne - rediriger vers MaxiCash
+          window.location.href = res.data.redirect_url;
         } else {
-          setError(errorMsg);
+          setError(res.data.message || "Erreur lors de l'inscription");
         }
+      } else {
+        setError(res.data.message || "Erreur lors de l'inscription");
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Erreur lors de l'inscription";
@@ -295,6 +289,17 @@ const EventInscriptionPage = () => {
               </div>
               <span className="text-xs md:text-sm font-medium whitespace-nowrap">Confirmation</span>
             </div>
+            {paymentMode === 'cash' && (
+              <>
+                <div className="w-8 md:w-12 h-0.5 bg-muted"></div>
+                <div className={`flex items-center gap-2 ${step >= 5 ? "text-accent" : "text-muted-foreground"}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step >= 5 ? "bg-accent text-white" : "bg-muted"}`}>
+                    5
+                  </div>
+                  <span className="text-xs md:text-sm font-medium whitespace-nowrap">QR Code</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Contenu */}
@@ -424,23 +429,6 @@ const EventInscriptionPage = () => {
                             <p className="text-sm text-muted-foreground mt-1">{mode.description}</p>
                           </div>
                         </div>
-
-                        {/* Sous-modes */}
-                        {formData.pay_type === mode.id && mode.sub_modes && mode.sub_modes.length > 0 && (
-                          <div className="ml-10 mt-3 space-y-2">
-                            <Label className="text-sm">Choisissez votre opérateur :</Label>
-                            <RadioGroup value={formData.pay_sub_type} onValueChange={handlePaymentSubTypeChange}>
-                              {mode.sub_modes.map((sub) => (
-                                <div key={sub.id} className="flex items-center space-x-2">
-                                  <RadioGroupItem value={sub.id} id={sub.id} />
-                                  <Label htmlFor={sub.id} className="cursor-pointer">
-                                    {sub.label}
-                                  </Label>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -500,7 +488,6 @@ const EventInscriptionPage = () => {
                     <h3 className="font-semibold mb-2">Mode de paiement</h3>
                     <p className="text-muted-foreground">
                       {paymentModes.find((m) => m.id === formData.pay_type)?.label}
-                      {formData.pay_sub_type && ` - ${paymentModes.find((m) => m.id === formData.pay_type)?.sub_modes?.find((s) => s.id === formData.pay_sub_type)?.label}`}
                     </p>
                   </div>
                 </div>
@@ -521,6 +508,108 @@ const EventInscriptionPage = () => {
                     {submitting ? "Redirection vers le paiement..." : "Procéder au paiement"}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ÉTAPE 5: QR Code pour paiement en caisse */}
+            {step === 5 && paymentMode === 'cash' && ticketData && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">Inscription enregistrée !</h2>
+                  <p className="text-muted-foreground">
+                    Présentez ce QR code à la caisse pour finaliser votre paiement
+                  </p>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex justify-center">
+                  <div className="bg-white p-6 rounded-xl border-2 border-accent shadow-lg">
+                    <QRCodeSVG 
+                      value={qrData || ''} 
+                      size={256}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                </div>
+
+                {/* Informations du ticket */}
+                <div className="space-y-4">
+                  <div className="bg-secondary p-4 rounded-xl">
+                    <h3 className="font-semibold mb-2">Référence du ticket</h3>
+                    <p className="text-2xl font-mono font-bold text-accent">{ticketData.reference}</p>
+                  </div>
+
+                  <div className="bg-secondary p-4 rounded-xl">
+                    <h3 className="font-semibold mb-2">Montant à payer</h3>
+                    <p className="text-3xl font-bold text-accent">
+                      {ticketData.amount} {ticketData.currency}
+                    </p>
+                  </div>
+
+                  <div className="bg-secondary p-4 rounded-xl">
+                    <h3 className="font-semibold mb-2">Participant</h3>
+                    <p className="text-muted-foreground">{ticketData.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{ticketData.email}</p>
+                    <p className="text-sm text-muted-foreground">{ticketData.phone}</p>
+                  </div>
+
+                  <div className="bg-secondary p-4 rounded-xl">
+                    <h3 className="font-semibold mb-2">Événement</h3>
+                    <p className="text-muted-foreground">{ticketData.event}</p>
+                    <p className="text-sm text-muted-foreground">Catégorie: {ticketData.category}</p>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg">
+                  <h4 className="font-semibold mb-2">📋 Instructions</h4>
+                  <ol className="text-sm space-y-1 list-decimal list-inside">
+                    <li>Présentez ce QR code à la caisse</li>
+                    <li>Effectuez le paiement de {ticketData.amount} {ticketData.currency}</li>
+                    <li>Votre ticket sera validé immédiatement</li>
+                    <li>Vous recevrez une confirmation par email</li>
+                  </ol>
+                </div>
+
+                {/* Boutons d'action */}
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={() => window.print()} 
+                    variant="outline" 
+                    className="gap-2"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Imprimer le ticket
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      const canvas = document.querySelector('canvas');
+                      if (canvas) {
+                        const url = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.download = `ticket-${ticketData.reference}.png`;
+                        link.href = url;
+                        link.click();
+                      }
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger le QR code
+                  </Button>
+
+                  <Link to="/evenements">
+                    <Button className="w-full">
+                      Retour aux événements
+                    </Button>
+                  </Link>
                 </div>
               </div>
             )}
