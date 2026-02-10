@@ -8,6 +8,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/health', fn () => response()->json(['ok' => true]));
+
+
 Route::get('/test-mail', function () {
     Mail::raw('Ceci est un test depuis Laravel !', function ($message) {
         $message->to('manassetshims@gmail.com')

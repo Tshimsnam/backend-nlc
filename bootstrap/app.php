@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'admin.only' => \App\Http\Middleware\AdminOnly::class,
+            'maxicash.signature' => \App\Http\Middleware\VerifyMaxiCashSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

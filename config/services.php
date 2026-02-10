@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'maxicash' => [
+        'merchant_id' => env('MAXICASH_MERCHANT_ID'),
+        'merchant_password' => env('MAXICASH_MERCHANT_PASSWORD'),
+        'webhook_secret' => env('MAXICASH_WEBHOOK_SECRET'),
+        'sandbox' => env('MAXICASH_SANDBOX', true),
+        'api_url' => env('MAXICASH_API_URL', 'https://webapi-test.maxicashapp.com'),
+        'redirect_base' => env('MAXICASH_REDIRECT_BASE', 'https://api-testbed.maxicashapp.com'),
+        'language' => env('MAXICASH_LANGUAGE', 'fr'),
+        'success_url' => env('MAXICASH_SUCCESS_URL'),
+        'failure_url' => env('MAXICASH_FAILURE_URL'),
+        'cancel_url' => env('MAXICASH_CANCEL_URL'),
+        'notify_url' => env('MAXICASH_NOTIFY_URL'), // URL du webhook ou page notify
+    ],
+
 ];

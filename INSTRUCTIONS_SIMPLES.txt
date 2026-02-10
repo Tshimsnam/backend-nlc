@@ -1,0 +1,74 @@
+╔═══════════════════════════════════════════════════════════════╗
+║         INSTRUCTIONS SIMPLES - BACKEND MAXICASH               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎯 PROBLÈME
+-----------
+Erreur "Object reference not set" sur MaxiCash
+→ MaxiCash ne peut pas accéder à vos URLs locales
+
+
+✅ SOLUTION
+-----------
+Utiliser LocalTunnel pour exposer votre app sur Internet
+
+
+📋 ÉTAPES (5 minutes)
+-----------
+
+1️⃣  INSTALLER LOCALTUNNEL
+   npm install -g localtunnel
+
+
+2️⃣  DÉMARRER TOUT
+   Double-cliquer sur: start-all-localtunnel.bat
+   
+   OU manuellement (4 terminaux):
+   - Terminal 1: php artisan serve --host=192.168.241.9 --port=8000
+   - Terminal 2: lt --port 8000 --subdomain nlc-maxicash-api-rdc
+   - Terminal 3: npm run dev (dans le dossier frontend)
+   - Terminal 4: lt --port 8080 --subdomain nlc-maxicash-rdc
+
+
+3️⃣  AUTORISER LOCALTUNNEL
+   Ouvrir dans le navigateur et cliquer "Continue":
+   - https://nlc-maxicash-rdc.loca.lt
+   - https://nlc-maxicash-api-rdc.loca.lt
+
+
+4️⃣  METTRE À JOUR .ENV
+   Changer dans .env:
+   MAXICASH_NOTIFY_URL=https://nlc-maxicash-api-rdc.loca.lt/api/webhooks/maxicash
+   
+   Puis redémarrer Laravel (Ctrl+C puis relancer)
+
+
+5️⃣  TESTER
+   php test-localtunnel-setup.php
+   php test-ticket-payment.php
+
+
+🎉 RÉSULTAT
+-----------
+L'erreur "Object reference not set" devrait avoir disparu!
+
+
+📚 DOCUMENTATION COMPLÈTE
+-----------
+- DEMARRAGE_RAPIDE.md
+- BACKEND_LOCALTUNNEL_SETUP.md
+- README_MAXICASH.md
+
+
+🆘 BESOIN D'AIDE?
+-----------
+1. Lire DEMARRAGE_RAPIDE.md
+2. Lancer: php test-localtunnel-setup.php
+3. Vérifier les logs: tail -f storage/logs/laravel.log
+
+
+⚠️  IMPORTANT
+-----------
+- LocalTunnel est GRATUIT
+- Les URLs restent les mêmes avec --subdomain
+- Pour la production, utilisez un vrai domaine

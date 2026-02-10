@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call(SettingSeeder::class);
         $this->call(ChildSeeder::class);
         $this->call(ProgramSeeder::class);
+        $this->call(EventSeeder::class);
 
         // (Optionnel) autres seeders, ex : faker users de test
         // $this->call(AnotherSeeder::class);
