@@ -1,0 +1,159 @@
+{
+  "info": {
+    "name": "MaxiCash - Inscription événement & paiement",
+    "description": "Intégration MaxiCash : PayPal, Carte (Visa/MasterCard), Mobile Money (M-Pesa, Orange, Airtel, P Mobile), MaxiCash Wallet.\n\n1. Récupérer les modes de paiement\n2. Créer un ticket et initier le paiement → utiliser redirect_url pour envoyer l'utilisateur sur MaxiCash\n3. (Optionnel) Simuler le webhook de notification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "event_id",
+      "value": "1"
+    },
+    {
+      "key": "event_price_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Modes de paiement",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/payment-modes",
+          "host": ["{{base_url}}"],
+          "path": ["api", "payment-modes"]
+        },
+        "description": "Liste des modes supportés : Mobile Money (M-Pesa, Orange, Airtel, P Mobile), Carte bancaire (Visa/MasterCard), MaxiCash Wallet, PayPal."
+      }
+    },
+    {
+      "name": "2. Inscription + initier paiement (créer ticket)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_price_id\": {{event_price_id}},\n  \"full_name\": \"Jean Dupont\",\n  \"email\": \"jean.dupont@example.com\",\n  \"phone\": \"+237690000000\",\n  \"pay_type\": \"credit_card\",\n  \"pay_sub_type\": null,\n  \"success_url\": \"{{base_url}}/payment/success\",\n  \"cancel_url\": \"{{base_url}}/payment/cancel\",\n  \"failure_url\": \"{{base_url}}/payment/failure\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/events/{{event_id}}/register",
+          "host": ["{{base_url}}"],
+          "path": ["api", "events", "{{event_id}}", "register"]
+        },
+        "description": "Crée un ticket et initie un paiement MaxiCash. Réponse : redirect_url à ouvrir dans le navigateur pour que l'utilisateur paie (MaxiCash propose PayPal, Carte, Mobile Money, etc.).\n\npay_type : credit_card | mobile_money | maxicash | paypal\npay_sub_type (si mobile_money) : mpesa | orange | airtel | p_mobile"
+      }
+    },
+    {
+      "name": "3. Inscription + Mobile Money (avec téléphone)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_price_id\": {{event_price_id}},\n  \"full_name\": \"Marie Martin\",\n  \"email\": \"marie@example.com\",\n  \"phone\": \"+237691111111\",\n  \"pay_type\": \"mobile_money\",\n  \"pay_sub_type\": \"mpesa\",\n  \"success_url\": \"{{base_url}}/payment/success\",\n  \"cancel_url\": \"{{base_url}}/payment/cancel\",\n  \"failure_url\": \"{{base_url}}/payment/failure\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/events/{{event_id}}/register",
+          "host": ["{{base_url}}"],
+          "path": ["api", "events", "{{event_id}}", "register"]
+        },
+        "description": "Même appel avec pay_type mobile_money ; le numéro phone est envoyé à MaxiCash pour le prélèvement Mobile Money."
+      }
+    },
+    {
+      "name": "4. Simuler webhook (paiement réussi)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"Reference\": \"VOTRE_REFERENCE_TICKET\",\n  \"Status\": \"completed\",\n  \"TransactionID\": \"txn_123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/webhooks/maxicash",
+          "host": ["{{base_url}}"],
+          "path": ["api", "webhooks", "maxicash"]
+        },
+        "description": "Simule la notification MaxiCash. Remplacer Reference par la référence du ticket créé à l’étape 2 (ex: AB12CD34EF). En sandbox sans MAXICASH_WEBHOOK_SECRET, la requête est acceptée."
+      }
+    },
+    {
+      "name": "5. MaxiCash PayEntryWeb (appel direct)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"PayType\": \"MaxiCash\",\n  \"MerchantID\": \"VOTRE_MERCHANT_ID\",\n  \"MerchantPassword\": \"VOTRE_MERCHANT_PASSWORD\",\n  \"Amount\": \"1000\",\n  \"Currency\": \"maxiDollar\",\n  \"Telephone\": \"\",\n  \"Language\": \"fr\",\n  \"Reference\": \"TEST-REF-001\",\n  \"SuccessURL\": \"{{base_url}}/payment/success\",\n  \"FailureURL\": \"{{base_url}}/payment/failure\",\n  \"CancelURL\": \"{{base_url}}/payment/cancel\",\n  \"NotifyURL\": \"{{base_url}}/api/webhooks/maxicash\"\n}"
+        },
+        "url": {
+          "raw": "https://webapi-test.maxicashapp.com/Integration/PayEntryWeb",
+          "host": ["https://webapi-test.maxicashapp.com"],
+          "path": ["Integration", "PayEntryWeb"]
+        },
+        "description": "Appel direct à l’API MaxiCash (sandbox). Amount en centimes (1000 = 10 USD). Après succès, rediriger l’utilisateur vers : https://api-testbed.maxicashapp.com/payentryweb?logid={LogID}"
+      }
+    },
+    {
+      "name": "6. Consulter un ticket par référence",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/tickets/:ticketNumber",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tickets", ":ticketNumber"],
+          "variable": [
+            {
+              "key": "ticketNumber",
+              "value": "VOTRE_REFERENCE"
+            }
+          ]
+        },
+        "description": "Récupère les détails d’un ticket par sa référence (renvoyée à l’inscription)."
+      }
+    }
+  ]
+}

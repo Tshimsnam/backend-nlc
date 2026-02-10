@@ -7,7 +7,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', env('FRONTEND_NLC')], // <-- ton Next.js en local
+    'allowed_origins' => [
+        'http://localhost:3000', 
+        'http://192.168.241.9:8080',
+        env('FRONTEND_NLC'), 
+        env('FRONTEND_WEBSITE_URL'),
+    ],
 
     'allowed_origins_patterns' => [],
 

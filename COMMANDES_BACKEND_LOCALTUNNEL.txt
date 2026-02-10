@@ -1,0 +1,103 @@
+===========================================
+  COMMANDES BACKEND LOCALTUNNEL
+===========================================
+
+📋 INSTALLATION
+-----------
+npm install -g localtunnel
+
+
+🚀 DÉMARRAGE MANUEL
+-----------
+# Terminal 1: Backend Laravel
+php artisan serve --host=192.168.241.9 --port=8000
+
+# Terminal 2: LocalTunnel Backend
+lt --port 8000 --subdomain nlc-maxicash-api-rdc
+
+
+🎯 DÉMARRAGE AUTOMATIQUE
+-----------
+# Backend seulement
+start-backend-localtunnel.bat
+
+# Frontend + Backend (tout)
+start-all-localtunnel.bat
+
+
+⚙️ CONFIGURATION .ENV
+-----------
+# Après avoir démarré LocalTunnel, mettre à jour :
+MAXICASH_NOTIFY_URL=https://nlc-maxicash-api-rdc.loca.lt/api/webhooks/maxicash
+
+# Puis redémarrer Laravel (Ctrl+C puis relancer)
+
+
+✅ VÉRIFICATION
+-----------
+# 1. Tester le backend local
+curl http://192.168.241.9:8000/api/test
+
+# 2. Tester le backend public
+curl https://nlc-maxicash-api-rdc.loca.lt/api/test
+
+# 3. Tester le webhook
+curl -X POST https://nlc-maxicash-api-rdc.loca.lt/api/webhooks/maxicash \
+  -H "Content-Type: application/json" \
+  -d "{\"Reference\":\"TEST\",\"Status\":\"completed\"}"
+
+# 4. Tester un paiement complet
+php test-ticket-payment.php
+
+
+🔍 DEBUGGING
+-----------
+# Voir les logs Laravel
+tail -f storage/logs/laravel.log
+
+# Vérifier la configuration
+grep MAXICASH .env
+
+# Tester l'API locale
+curl http://192.168.241.9:8000/api/events
+
+
+📊 URLS IMPORTANTES
+-----------
+Frontend Local    : http://localhost:8080
+Frontend Public   : https://nlc-maxicash-rdc.loca.lt
+
+Backend Local     : http://192.168.241.9:8000
+Backend Public    : https://nlc-maxicash-api-rdc.loca.lt
+
+API Test          : https://nlc-maxicash-api-rdc.loca.lt/api/test
+Webhook           : https://nlc-maxicash-api-rdc.loca.lt/api/webhooks/maxicash
+
+
+⚠️ IMPORTANT
+-----------
+1. Première visite : Cliquer "Click to Continue" sur les URLs LocalTunnel
+2. Les URLs LocalTunnel restent les mêmes tant que vous ne redémarrez pas
+3. Si vous redémarrez, les URLs peuvent changer (sauf avec --subdomain)
+4. LocalTunnel est gratuit mais peut être lent parfois
+5. Pour la production, utilisez un vrai domaine
+
+
+🎉 PRÊT À TESTER
+-----------
+Une fois tout configuré :
+1. Ouvrir https://nlc-maxicash-rdc.loca.lt
+2. Aller sur la page d'inscription à un événement
+3. Remplir le formulaire
+4. Cliquer sur "Payer"
+5. Vous serez redirigé vers MaxiCash
+6. L'erreur "Object reference not set" devrait avoir disparu !
+
+
+📞 SUPPORT
+-----------
+Si problème :
+- Vérifier que LocalTunnel tourne : lt --version
+- Vérifier que Laravel tourne : curl http://192.168.241.9:8000/api/test
+- Vérifier les logs : tail -f storage/logs/laravel.log
+- Vérifier .env : grep MAXICASH .env
