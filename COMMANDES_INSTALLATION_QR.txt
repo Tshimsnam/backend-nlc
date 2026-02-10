@@ -1,0 +1,92 @@
+═══════════════════════════════════════════════════════════════
+  INSTALLATION DU SYSTÈME DE PAIEMENT EN CAISSE
+═══════════════════════════════════════════════════════════════
+
+✅ BACKEND - DÉJÀ TERMINÉ
+Le backend est prêt et fonctionnel!
+
+📦 FRONTEND - INSTALLATION REQUISE
+────────────────────────────────────────────────────────────────
+
+ÉTAPE 1: Aller dans le dossier frontend
+────────────────────────────────────────────────────────────────
+cd frontend-nlc
+(ou le nom de ton dossier frontend)
+
+
+ÉTAPE 2: Installer la bibliothèque QR Code
+────────────────────────────────────────────────────────────────
+npm install qrcode.react
+
+
+ÉTAPE 3: Vérifier l'installation
+────────────────────────────────────────────────────────────────
+npm list qrcode.react
+
+Tu devrais voir:
+qrcode.react@x.x.x
+
+
+ÉTAPE 4: Redémarrer le serveur frontend
+────────────────────────────────────────────────────────────────
+npm run dev
+
+
+✅ FICHIER DÉJÀ MIS À JOUR
+────────────────────────────────────────────────────────────────
+EventInscriptionPage.tsx a été mis à jour avec:
+✓ Import de QRCodeSVG
+✓ Import des icônes CheckCircle, Printer, Download
+✓ Nouveaux états (qrData, ticketData, paymentMode)
+✓ Fonction handleSubmit modifiée pour gérer les 2 modes
+✓ Étape 5 ajoutée pour afficher le QR code
+✓ Indicateur d'étapes mis à jour
+
+
+🧪 TEST DU SYSTÈME
+────────────────────────────────────────────────────────────────
+
+1. Démarrer le backend:
+   cd backend-nlc
+   php artisan serve --host=192.168.241.9 --port=8000
+
+2. Démarrer le frontend:
+   cd frontend-nlc
+   npm run dev
+
+3. Ouvrir le navigateur:
+   http://192.168.241.9:8080/evenements
+
+4. Tester paiement en caisse:
+   - Sélectionner un événement
+   - Cliquer "S'inscrire"
+   - Choisir un tarif
+   - Remplir les informations
+   - Sélectionner "Paiement en caisse"
+   - Confirmer
+   - ✅ Tu devrais voir le QR code!
+
+5. Tester paiement en ligne:
+   - Même processus
+   - Sélectionner Mobile Money / Carte / PayPal
+   - ✅ Tu devrais être redirigé vers MaxiCash
+
+
+⚠️ SI TU AS DES ERREURS
+────────────────────────────────────────────────────────────────
+
+Erreur: "Cannot find module 'qrcode.react'"
+Solution: npm install qrcode.react
+
+Erreur: "QRCodeSVG is not defined"
+Solution: Vérifier l'import en haut du fichier
+
+Erreur: Le mode "Paiement en caisse" n'apparaît pas
+Solution: Vérifier que le backend est bien démarré
+
+
+📋 PROCHAINE ÉTAPE
+────────────────────────────────────────────────────────────────
+Créer l'interface admin pour valider les paiements en caisse.
+
+═══════════════════════════════════════════════════════════════
