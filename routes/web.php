@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\ResetPasswordController;
 
 Route::get('/', function () {
-    return view('welcome');
+    // Rediriger vers le frontend (page événements)
+    $frontendUrl = env('FRONTEND_WEBSITE_URL', 'http://localhost:8080');
+    return redirect($frontendUrl . '/evenements');
 });
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
