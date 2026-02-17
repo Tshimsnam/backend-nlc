@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur QR Code LOCAL - NLC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <h2 class="font-bold text-yellow-900 mb-2">⚠️ VERSION LOCAL - DÉVELOPPEMENT</h2>
+            <p class="text-sm text-yellow-800">Ce QR code pointe vers votre environnement local pour les tests.</p>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Générateur QR Code LOCAL</h1>
+        <p class="text-gray-600 mb-8">Événement: Le trouble du spectre autistique et la scolarité</p>
+
+        <!-- URL Input -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">URL de l'événement (LOCAL)</label>
+            <input 
+                type="text" 
+                id="eventUrl" 
+                value="http://192.168.171.9:8080/evenements/le-trouble-du-spectre-autistique-et-la-scolarite"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+            <p class="text-xs text-gray-500 mt-2">💡 Modifiez l'URL selon votre configuration locale</p>
+        </div>
+
+        <!-- QR Code Display -->
+        <div class="flex flex-col items-center mb-6">
+            <div id="qrcode" class="bg-white p-4 rounded-lg border-2 border-gray-200"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-4 mb-6">
+            <button 
+                onclick="regenerateQR()" 
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition"
+            >
+                🔄 Régénérer QR
+            </button>
+            <button 
+                onclick="downloadQR()" 
+                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition"
+            >
+                📥 Télécharger
+            </button>
+        </div>
+
+        <!-- URLs Communes -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <h3 class="font-bold text-gray-900 mb-3">🔗 URLs Communes</h3>
+            <div class="space-y-2 text-sm">
+                <button onclick="setUrl('http://localhost:3000/evenements/le-trouble-du-spectre-autistique-et-la-scolarite')" class="w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+                    📍 localhost:3000
+                </button>
+                <button onclick="setUrl('http://192.168.171.9:3000/evenements/le-trouble-du-spectre-autistique-et-la-scolarite')" class="w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+                    📍 192.168.171.9:3000 (réseau local)
+                </button>
+                <button onclick="setUrl('http://localhost:8080/evenements/le-trouble-du-spectre-autistique-et-la-scolarite')" class="w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+                    📍 localhost:8080
+                </button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 class="font-bold text-blue-900 mb-2">📱 Comment tester ?</h3>
+            <ol class="list-decimal list-inside text-sm text-blue-800 space-y-1">
+                <li>Assurez-vous que votre frontend local tourne</li>
+                <li>Modifiez l'URL si nécessaire</li>
+                <li>Cliquez sur "Régénérer QR"</li>
+                <li>Scannez avec votre téléphone (connecté au même réseau)</li>
+                <li>Vérifiez le dashboard admin pour voir le scan</li>
+            </ol>
+        </div>
+
+        <!-- Warning -->
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 class="font-bold text-red-900 mb-2">⚠️ Important</h3>
+            <ul class="list-disc list-inside text-sm text-red-800 space-y-1">
+                <li>Ce QR code est pour les TESTS uniquement</li>
+                <li>N'utilisez PAS ce QR en production</li>
+                <li>Pour la production, utilisez qr-code-generator.html</li>
+                <li>Votre téléphone doit être sur le même réseau WiFi</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let qrcodeInstance = null;
+
+        function generateQR() {
+            const url = document.getElementById('eventUrl').value;
+            const qrcodeDiv = document.getElementById("qrcode");
+            
+            // Clear previous QR code
+            qrcodeDiv.innerHTML = '';
+            
+            // Generate new QR code
+            qrcodeInstance = new QRCode(qrcodeDiv, {
+                text: url,
+                width: 300,
+                height: 300,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function regenerateQR() {
+            generateQR();
+        }
+
+        function setUrl(url) {
+            document.getElementById('eventUrl').value = url;
+            generateQR();
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                alert('Veuillez d\'abord générer un QR code');
+                return;
+            }
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'qr-code-nlc-local.png';
+            link.href = url;
+            link.click();
+        }
+
+        // Generate QR code on page load
+        window.onload = function() {
+            generateQR();
+        };
+    </script>
+</body>
+</html>

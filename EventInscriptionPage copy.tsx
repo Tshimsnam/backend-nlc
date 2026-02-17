@@ -69,6 +69,7 @@ const EventInscriptionPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<any>(null);
+  const [paymentMode, setPaymentMode] = useState<'online' | 'cash' | null>(null);
 
   const [formData, setFormData] = useState<RegistrationFormData>({
     event_price_id: 0,
@@ -76,10 +77,10 @@ const EventInscriptionPage = () => {
     email: "",
     phone: "",
     days: 1,
-    pay_type: "cash", // Par défaut cash pour générer la référence
+    pay_type: "",
   });
 
-  const totalSteps = 4; // Seulement 4 étapes maintenant
+  const totalSteps = paymentMode === 'cash' ? 5 : 4;
   const progress = (step / totalSteps) * 100;
 
   // Fonction pour télécharger le billet en PDF
@@ -325,20 +326,23 @@ const EventInscriptionPage = () => {
 
   const validateStep1 = () => formData.event_price_id > 0 && selectedPrice;
   const validateStep2 = () => formData.full_name && formData.email && formData.phone;
+  const validateStep3 = () => !!formData.pay_type;
 
   const handleNextStep = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
+      // Focus sur le premier champ de l'étape 2
       setTimeout(() => {
         const firstInput = document.getElementById('full_name');
         if (firstInput) firstInput.focus();
       }, 100);
     }
     else if (step === 2 && validateStep2()) setStep(3);
+    else if (step === 3 && validateStep3()) setStep(4);
   };
 
   const handleSubmit = async () => {
-    if (!validateStep2() || !event) return;
+    if (!validateStep2() || !validateStep3() || !event) return;
 
     setSubmitting(true);
     setError(null);
@@ -355,24 +359,29 @@ const EventInscriptionPage = () => {
       const res = await axios.post(`${API_URL}/events/${event.id}/register`, payload);
 
       if (res.data.success) {
-        // Toujours afficher le billet avec les instructions
-        setTicketData(res.data.ticket);
-        
-        // Créer un QR code avec toutes les informations
-        const qrInfo = JSON.stringify({
-          reference: res.data.ticket.reference,
-          event: event.title,
-          participant: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          amount: res.data.ticket.amount,
-          currency: res.data.ticket.currency,
-          category: res.data.ticket.category,
-          date: event.date,
-          location: event.location,
-        });
-        setQrData(qrInfo);
-        setStep(4); // Aller à l'étape 4 (affichage du billet)
+        if (res.data.payment_mode === 'cash') {
+          setPaymentMode('cash');
+          setTicketData(res.data.ticket);
+          // Créer un QR code avec toutes les informations
+          const qrInfo = JSON.stringify({
+            reference: res.data.ticket.reference,
+            event: event.title,
+            participant: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            amount: res.data.ticket.amount,
+            currency: res.data.ticket.currency,
+            category: res.data.ticket.category,
+            date: event.date,
+            location: event.location,
+          });
+          setQrData(qrInfo);
+          setStep(5);
+        } else if (res.data.redirect_url) {
+          window.location.href = res.data.redirect_url;
+        } else {
+          setError(res.data.message || "Erreur lors de l'inscription");
+        }
       } else {
         setError(res.data.message || "Erreur lors de l'inscription");
       }
@@ -464,7 +473,7 @@ const EventInscriptionPage = () => {
                 />
               </div>
               <div className="flex justify-between mt-4">
-                {[1, 2, 3, 4].map((s) => (
+                {[1, 2, 3, 4, ...(paymentMode === 'cash' ? [5] : [])].map((s) => (
                   <motion.div
                     key={s}
                     initial={{ scale: 0 }}
@@ -484,8 +493,9 @@ const EventInscriptionPage = () => {
                     <span className="text-[10px] md:text-xs mt-2 text-center font-medium hidden sm:block">
                       {s === 1 && "Tarif"}
                       {s === 2 && "Infos"}
-                      {s === 3 && "Confirmation"}
-                      {s === 4 && "Billet"}
+                      {s === 3 && "Paiement"}
+                      {s === 4 && "Confirmation"}
+                      {s === 5 && "Billet"}
                     </span>
                   </motion.div>
                 ))}
@@ -659,8 +669,118 @@ const EventInscriptionPage = () => {
                 </motion.div>
               )}
 
-              {/* ÉTAPE 3: Confirmation */}
+              {/* ÉTAPE 3: Mode de paiement */}
               {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl md:text-3xl font-bold mb-2">Mode de paiement</h2>
+                  <p className="text-muted-foreground mb-6">Choisissez comment vous souhaitez payer</p>
+                  <RadioGroup value={formData.pay_type} onValueChange={handlePaymentTypeChange}>
+                    <div className="space-y-4">
+                      {paymentModes.map((mode, index) => (
+                        <motion.div
+                          key={mode.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative flex items-start space-x-4 p-6 rounded-2xl border-2 transition-all cursor-pointer group ${
+                            formData.pay_type === mode.id
+                              ? "border-accent bg-gradient-to-br from-accent/10 via-accent/5 to-transparent shadow-xl shadow-accent/20 ring-2 ring-accent/30"
+                              : "border-gray-200 dark:border-gray-700 hover:border-accent/50 hover:shadow-lg hover:bg-accent/5"
+                          }`}
+                          onClick={() => handlePaymentTypeChange(mode.id)}
+                        >
+                          <RadioGroupItem value={mode.id} id={mode.id} className="mt-1.5" />
+                          <div className="flex-1">
+                            <Label htmlFor={mode.id} className={`font-bold text-base md:text-lg cursor-pointer transition-colors ${
+                              formData.pay_type === mode.id ? "text-accent" : "group-hover:text-accent"
+                            }`}>
+                              {mode.label}
+                            </Label>
+                            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{mode.description}</p>
+                            {mode.requires_phone && (
+                              <div className="mt-3 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg w-fit">
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>Numéro de téléphone requis</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Indicateur de sélection */}
+                          {formData.pay_type === mode.id && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute top-4 right-4 w-7 h-7 bg-accent rounded-full flex items-center justify-center shadow-lg"
+                            >
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </RadioGroup>
+                  
+                  {/* Message d'information selon le mode sélectionné */}
+                  {formData.pay_type && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-xl"
+                    >
+                      {formData.pay_type === 'cash' && (
+                        <p className="text-sm">
+                          💵 Vous recevrez un QR code à présenter à la caisse pour finaliser votre paiement.
+                        </p>
+                      )}
+                      {formData.pay_type === 'maxicash' && (
+                        <p className="text-sm">
+                          💳 Vous serez redirigé vers MaxiCash pour payer par Mobile Money, Carte bancaire ou PayPal.
+                        </p>
+                      )}
+                      {formData.pay_type === 'mpesa' && (
+                        <p className="text-sm">
+                          📱 Vous recevrez une notification M-Pesa sur votre téléphone pour confirmer le paiement.
+                        </p>
+                      )}
+                      {formData.pay_type === 'orange_money' && (
+                        <p className="text-sm">
+                          🍊 Vous serez redirigé vers Orange Money pour finaliser votre paiement.
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                  
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+                  <div className="flex justify-between pt-4">
+                    <Button variant="outline" onClick={() => setStep(2)} size="lg" className="gap-2">
+                      <ArrowLeft className="w-4 h-4" />
+                      Retour
+                    </Button>
+                    <Button onClick={handleNextStep} disabled={!validateStep3()} size="lg" className="gap-2">
+                      Suivant
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ÉTAPE 4: Confirmation */}
+              {step === 4 && (
                 <motion.div
                   key="step4"
                   initial={{ opacity: 0, x: 20 }}
@@ -745,6 +865,26 @@ const EventInscriptionPage = () => {
                         </p>
                       </div>
                     </motion.div>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      transition={{ delay: 0.4 }} 
+                      className="bg-gradient-to-br from-secondary/80 to-secondary/40 p-6 rounded-2xl border-2 border-accent/20 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-accent" />
+                        </div>
+                        <h3 className="font-bold text-lg">Mode de paiement</h3>
+                      </div>
+                      <p className="font-semibold text-lg mb-2">
+                        {paymentModes.find((m) => m.id === formData.pay_type)?.label || 'Non sélectionné'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {paymentModes.find((m) => m.id === formData.pay_type)?.description}
+                      </p>
+                    </motion.div>
                   </div>
                   {error && (
                     <motion.div
@@ -752,12 +892,12 @@ const EventInscriptionPage = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl"
                     >
-                      <div className="font-semibold mb-2">⚠️ Erreur</div>
+                      <div className="font-semibold mb-2">⚠️ Erreur de paiement</div>
                       <div className="text-sm whitespace-pre-line">{error}</div>
                     </motion.div>
                   )}
                   <div className="flex justify-between pt-4">
-                    <Button variant="outline" onClick={() => setStep(2)} disabled={submitting} size="lg" className="gap-2">
+                    <Button variant="outline" onClick={() => setStep(3)} disabled={submitting} size="lg" className="gap-2">
                       <ArrowLeft className="w-4 h-4" />
                       Retour
                     </Button>
@@ -773,7 +913,7 @@ const EventInscriptionPage = () => {
                         </>
                       ) : (
                         <>
-                          Générer mon billet
+                          Procéder au paiement
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}
@@ -782,435 +922,8 @@ const EventInscriptionPage = () => {
                 </motion.div>
               )}
 
-              {/* ÉTAPE 4: Billet avec Instructions de Paiement */}
-              {step === 4 && ticketData && (
-                <motion.div
-                  key="step5"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="space-y-8"
-                >
-                  <div className="text-center">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", duration: 0.6 }}
-                      className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4"
-                    >
-                      <CheckCircle className="w-10 h-10 text-green-600" />
-                    </motion.div>
-                    <h2 className="text-2xl md:text-3xl font-bold mb-2">Inscription réussie !</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">
-                      Votre référence : <span className="font-mono font-bold text-accent">{ticketData.reference}</span>
-                    </p>
-                  </div>
-
-                  {/* Instructions de paiement selon le mode */}
-                  {paymentMode === 'mpesa' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-3xl p-8 shadow-xl"
-                    >
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center">
-                          <Phone className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-bold text-green-900">Paiement M-Pesa</h3>
-                          <p className="text-green-700">Suivez ces étapes pour payer</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-2xl p-6 mb-6">
-                        <div className="space-y-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Composez</p>
-                              <p className="text-2xl font-bold text-green-600 font-mono">*1122#</p>
-                              <p className="text-sm text-gray-600 mt-1">Sur votre compte Dollar ou Franc</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Choisissez</p>
-                              <p className="text-lg font-semibold text-gray-800">5 - Mes paiements</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">3</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Entrez le numéro</p>
-                              <p className="text-3xl font-bold text-green-600 font-mono">097435</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">4</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Sélectionnez la raison</p>
-                              <p className="text-lg font-semibold text-gray-800">La raison de transaction</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">5</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Indiquez le numéro de caisse</p>
-                              <p className="text-lg font-semibold text-gray-800">Indiquez le numéro de caisse</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">6</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Entrez le montant</p>
-                              <p className="text-3xl font-bold text-green-600">{ticketData.amount} {ticketData.currency}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">7</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Validez avec votre</p>
-                              <p className="text-lg font-semibold text-gray-800">PIN M-Pesa</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-green-600 text-white rounded-2xl p-6">
-                        <p className="font-semibold mb-2">📱 Ou utilisez l'application M-Pesa RDC</p>
-                        <p className="text-sm text-green-100">Téléchargez l'app sur Google Play ou App Store</p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {paymentMode === 'orange_money' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 rounded-3xl p-8 shadow-xl"
-                    >
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center">
-                          <Phone className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-bold text-orange-900">Paiement Orange Money</h3>
-                          <p className="text-orange-700">Suivez ces étapes pour payer</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-2xl p-6 mb-6">
-                        <div className="space-y-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Composez</p>
-                              <p className="text-2xl font-bold text-orange-600 font-mono">#144#</p>
-                              <p className="text-sm text-gray-600 mt-1">Sur votre téléphone Orange</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Sélectionnez</p>
-                              <p className="text-lg font-semibold text-gray-800">Paiement marchand</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">3</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Entrez le numéro marchand</p>
-                              <p className="text-3xl font-bold text-orange-600 font-mono">[NUMERO_MARCHAND]</p>
-                              <p className="text-sm text-gray-600 mt-1">Contactez-nous pour obtenir ce numéro</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">4</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Entrez le montant</p>
-                              <p className="text-3xl font-bold text-orange-600">{ticketData.amount} {ticketData.currency}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">5</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Entrez votre référence</p>
-                              <p className="text-2xl font-bold text-orange-600 font-mono">{ticketData.reference}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">6</div>
-                            <div>
-                              <p className="font-semibold text-gray-900">Validez avec votre</p>
-                              <p className="text-lg font-semibold text-gray-800">Code PIN Orange Money</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-orange-600 text-white rounded-2xl p-6">
-                        <p className="font-semibold mb-2">📱 Ou utilisez l'application Orange Money</p>
-                        <p className="text-sm text-orange-100">Téléchargez l'app sur Google Play ou App Store</p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {paymentMode === 'cash' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-blue-50 border-2 border-blue-200 text-blue-900 px-6 py-5 rounded-2xl"
-                    >
-                      <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        Instructions pour le paiement en caisse
-                      </h4>
-                      <ol className="text-sm space-y-2 list-decimal list-inside">
-                        <li>Présentez-vous à la caisse avec ce billet</li>
-                        <li>Effectuez le paiement de {ticketData.amount} {ticketData.currency}</li>
-                        <li>Votre billet sera validé et vous recevrez une confirmation par email</li>
-                      </ol>
-                    </motion.div>
-                  )}
-
-                  {/* Billet moderne */}
-                  <motion.div
-                    id="ticket-to-download"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-3xl mx-auto"
-                  >
-                    {/* En-tête avec dégradé */}
-                    <div className={`relative h-40 md:h-48 bg-gradient-to-br ${
-                      paymentMode === 'mpesa' ? 'from-green-600 via-green-700 to-green-800' :
-                      paymentMode === 'orange_money' ? 'from-orange-600 via-orange-700 to-orange-800' :
-                      'from-blue-600 via-blue-700 to-purple-700'
-                    } flex items-center justify-center overflow-hidden`}>
-                      <div className="absolute inset-0 opacity-20">
-                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')]"></div>
-                      </div>
-                      <Ticket className="w-20 h-20 md:w-24 md:h-24 text-white relative z-10" strokeWidth={1.5} />
-                    </div>
-
-                    {/* Contenu du billet */}
-                    <div className="p-6 md:p-10">
-                      {/* Titre */}
-                      <div className="mb-8 text-center">
-                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{event.title}</h3>
-                        <div className={`inline-block px-4 py-1 rounded-full ${
-                          paymentMode === 'mpesa' ? 'bg-green-50' :
-                          paymentMode === 'orange_money' ? 'bg-orange-50' :
-                          'bg-blue-50'
-                        }`}>
-                          <p className={`text-sm font-mono font-semibold ${
-                            paymentMode === 'mpesa' ? 'text-green-700' :
-                            paymentMode === 'orange_money' ? 'text-orange-700' :
-                            'text-blue-700'
-                          }`}>Réf: {ticketData.reference}</p>
-                        </div>
-                      </div>
-
-                      {/* Grille d'informations */}
-                      <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        {/* Colonne gauche */}
-                        <div className="space-y-5">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <Calendar className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Date</p>
-                              <p className="text-base font-medium text-gray-900 mt-1">{event.date}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <MapPin className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Lieu</p>
-                              <p className="text-base font-medium text-gray-900 mt-1">{event.location}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <Ticket className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Catégorie</p>
-                              <p className="text-base font-medium text-gray-900 mt-1">{ticketData.category}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Colonne droite */}
-                        <div className="space-y-5">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <User className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Participant</p>
-                              <p className="text-base font-medium text-gray-900 mt-1">{ticketData.full_name}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <Mail className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Email</p>
-                              <p className="text-sm font-medium text-gray-900 mt-1 break-all">{ticketData.email}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              paymentMode === 'mpesa' ? 'bg-green-50' :
-                              paymentMode === 'orange_money' ? 'bg-orange-50' :
-                              'bg-blue-50'
-                            }`}>
-                              <Phone className={`w-5 h-5 ${
-                                paymentMode === 'mpesa' ? 'text-green-600' :
-                                paymentMode === 'orange_money' ? 'text-orange-600' :
-                                'text-blue-600'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Téléphone</p>
-                              <p className="text-base font-medium text-gray-900 mt-1">{ticketData.phone}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* QR Code */}
-                      <div className="flex justify-center mb-8">
-                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8 rounded-2xl border-2 border-gray-200 shadow-inner">
-                          <QRCodeSVG 
-                            value={qrData || ''} 
-                            size={200}
-                            level="H"
-                            className="mx-auto"
-                          />
-                          <p className="text-xs text-center text-gray-600 mt-4 font-medium">Scannez ce code à l'entrée</p>
-                        </div>
-                      </div>
-
-                      {/* Montant */}
-                      <div className="border-t-2 border-dashed border-gray-300 pt-6">
-                        <div className="flex justify-between items-center">
-                          <span className="text-lg md:text-xl font-semibold text-gray-900">Montant à payer</span>
-                          <span className={`text-3xl md:text-4xl font-bold ${
-                            paymentMode === 'mpesa' ? 'text-green-600' :
-                            paymentMode === 'orange_money' ? 'text-orange-600' :
-                            'text-blue-600'
-                          }`}>
-                            {ticketData.amount} {ticketData.currency}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Boutons d'action */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="grid sm:grid-cols-2 gap-4"
-                  >
-                    <Button 
-                      onClick={printTicket} 
-                      variant="outline" 
-                      size="lg"
-                      className="gap-2"
-                    >
-                      <Printer className="w-5 h-5" />
-                      Imprimer le billet
-                    </Button>
-                    
-                    <Button 
-                      onClick={downloadTicketPDF}
-                      size="lg"
-                      className={`gap-2 bg-gradient-to-r ${
-                        paymentMode === 'mpesa' ? 'from-green-600 to-green-700 hover:from-green-700 hover:to-green-800' :
-                        paymentMode === 'orange_money' ? 'from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800' :
-                        'from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                      }`}
-                    >
-                      <Download className="w-5 h-5" />
-                      Télécharger le Billet
-                    </Button>
-                  </motion.div>
-
-                  <div className="text-center pt-4">
-                    <Link to="/evenements">
-                      <Button variant="ghost" size="lg" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" />
-                        Retour aux événements
-                      </Button>
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
+              {/* ÉTAPE 5: Billet avec QR Code */}
+              {step === 5 && paymentMode === 'cash' && ticketData && (
                 <motion.div
                   key="step5"
                   initial={{ opacity: 0, scale: 0.95 }}

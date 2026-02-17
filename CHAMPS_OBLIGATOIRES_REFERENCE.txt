@@ -1,0 +1,205 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║              📋 CHAMPS OBLIGATOIRES POUR GÉNÉRER UNE RÉFÉRENCE               ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🎯 ENDPOINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POST /api/events/{event_id}/register
+
+Exemple: POST http://192.168.58.9:8000/api/events/1/register
+
+
+✅ CHAMPS OBLIGATOIRES (5)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. event_price_id
+   Type: integer
+   Règle: Doit exister dans la table event_prices
+   Exemple: 2
+   Description: ID du tarif sélectionné (étudiant, médecin, etc.)
+
+2. full_name
+   Type: string
+   Règle: Minimum 3 caractères, Maximum 255
+   Exemple: "Franck Kapuya"
+   Description: Nom complet du participant
+
+3. email
+   Type: email
+   Règle: Format email valide, Maximum 255
+   Exemple: "franckkapuya13@gmail.com"
+   Description: Email du participant
+
+4. phone
+   Type: string
+   Règle: Minimum 9 caractères, Maximum 50
+   Exemple: "+243822902681"
+   Description: Numéro de téléphone du participant
+
+5. pay_type
+   Type: string
+   Règle: Valeurs acceptées: "online" ou "cash"
+   Exemple: "online"
+   Description: Mode de paiement choisi
+
+
+❌ CHAMPS OPTIONNELS (5)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. days
+   Type: integer
+   Défaut: 1
+   Exemple: 1
+   Description: Nombre de jours de participation
+
+2. pay_sub_type
+   Type: string
+   Défaut: null
+   Exemple: "mobile_money"
+   Description: Sous-type de paiement (optionnel)
+
+3. success_url
+   Type: url
+   Défaut: Depuis .env
+   Exemple: "https://nlc-maxicash-rdc.loca.lt/paiement/success"
+   Description: URL de redirection après succès
+
+4. cancel_url
+   Type: url
+   Défaut: Depuis .env
+   Exemple: "https://nlc-maxicash-rdc.loca.lt/paiement/cancel"
+   Description: URL de redirection après annulation
+
+5. failure_url
+   Type: url
+   Défaut: Depuis .env
+   Exemple: "https://nlc-maxicash-rdc.loca.lt/paiement/failure"
+   Description: URL de redirection après échec
+
+
+📝 PAYLOAD MINIMAL (RECOMMANDÉ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "event_price_id": 2,
+  "full_name": "Franck Kapuya",
+  "email": "franckkapuya13@gmail.com",
+  "phone": "+243822902681",
+  "pay_type": "online"
+}
+
+
+🔄 GÉNÉRATION AUTOMATIQUE DE LA RÉFÉRENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+La référence est générée AUTOMATIQUEMENT par le backend:
+
+Méthode: strtoupper(Str::random(10))
+Format: 10 caractères alphanumériques en majuscules
+Exemples: 
+  - T5AECQ2T4W
+  - XQECJYUN4O
+  - P0VKBZWQ2L
+  - JLU4ICAHEZ
+
+Vous N'AVEZ PAS BESOIN de fournir la référence dans le payload!
+
+
+📊 CHAMPS REMPLIS AUTOMATIQUEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ces champs sont remplis par le backend:
+
+✓ event_id         → Depuis l'URL (/api/events/{event_id}/register)
+✓ reference        → Généré automatiquement (10 caractères)
+✓ category         → Depuis EventPrice (etudiant, medecin, etc.)
+✓ amount           → Depuis EventPrice (15.00, 50.00, etc.)
+✓ currency         → Depuis EventPrice (USD, etc.)
+✓ payment_status   → "pending" (online) ou "pending_cash" (cash)
+✓ gateway_log_id   → Depuis MaxiCash (après initiation paiement)
+
+
+✅ RÉPONSE ATTENDUE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HTTP 201 Created
+
+{
+  "success": true,
+  "payment_mode": "online",
+  "reference": "T5AECQ2T4W",           ← RÉFÉRENCE GÉNÉRÉE
+  "redirect_url": "https://api-testbed.maxicashapp.com/payentryweb?logid=97761",
+  "log_id": "97761",
+  "message": "Redirection vers MaxiCash pour finaliser le paiement"
+}
+
+
+❌ ERREURS POSSIBLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HTTP 422 Unprocessable Entity
+
+Champ manquant:
+{
+  "message": "Le nom complet est obligatoire",
+  "errors": {
+    "full_name": ["Le nom complet est obligatoire"]
+  }
+}
+
+Champ invalide:
+{
+  "message": "L'email doit être valide",
+  "errors": {
+    "email": ["L'email doit être valide"]
+  }
+}
+
+event_price_id inexistant:
+{
+  "message": "Le tarif sélectionné n'existe pas",
+  "errors": {
+    "event_price_id": ["Le tarif sélectionné n'existe pas"]
+  }
+}
+
+
+🧪 TESTER LA GÉNÉRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Avec cURL:
+curl -X POST http://192.168.58.9:8000/api/events/1/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_price_id": 2,
+    "full_name": "Franck Kapuya",
+    "email": "franckkapuya13@gmail.com",
+    "phone": "+243822902681",
+    "pay_type": "online"
+  }'
+
+Avec le script PHP:
+php test-api-inscription.php
+
+
+📚 DOCUMENTATION COMPLÈTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Consultez: GENERATION_REFERENCE_TICKET.md
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    📋 RÉSUMÉ: 5 CHAMPS OBLIGATOIRES                          ║
+║                                                                              ║
+║  1. event_price_id (integer)                                                 ║
+║  2. full_name (string, min: 3)                                               ║
+║  3. email (email valide)                                                     ║
+║  4. phone (string, min: 9)                                                   ║
+║  5. pay_type ("online" ou "cash")                                            ║
+║                                                                              ║
+║  → La référence est générée AUTOMATIQUEMENT par le backend                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

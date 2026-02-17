@@ -7,7 +7,7 @@ use App\Http\Requests\StoreTicketRequest;
 use App\Models\Event;
 use App\Models\EventPrice;
 use App\Models\Ticket;
-use App\Services\Payments\MaxiCashService;
+use App\Services\Payments\PaymentGatewayFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,35 +15,49 @@ use Illuminate\Support\Str;
 class TicketController extends Controller
 {
     /**
-     * Deux modes de paiement:
-     * - En ligne : via MaxiCash (Mobile Money, Carte, PayPal, etc.)
+     * Modes de paiement disponibles:
+     * - En ligne : MaxiCash, M-Pesa, Orange Money
      * - En caisse : génération QR code pour paiement physique
      */
     public function paymentModes(): JsonResponse
     {
         return response()->json([
             [
-                'id' => 'online',
-                'label' => 'Paiement en ligne',
-                'description' => 'Payez en ligne via MaxiCash (Mobile Money, Carte bancaire, PayPal, etc.)',
-                'requires_phone' => false,
-            ],
-            [
                 'id' => 'cash',
                 'label' => 'Paiement en caisse',
                 'description' => 'Générez votre QR code et payez directement à la caisse.',
                 'requires_phone' => false,
             ],
+            [
+                'id' => 'maxicash',
+                'label' => 'MaxiCash',
+                'description' => 'Payez via MaxiCash (Mobile Money, Carte bancaire, PayPal, etc.)',
+                'requires_phone' => false,
+            ],
+            [
+                'id' => 'mpesa',
+                'label' => 'M-Pesa',
+                'description' => 'Payez via M-Pesa (Safaricom - Kenya)',
+                'requires_phone' => true,
+            ],
+            [
+                'id' => 'orange_money',
+                'label' => 'Orange Money',
+                'description' => 'Payez via Orange Money',
+                'requires_phone' => true,
+            ],
         ]);
     }
 
-    public function store(StoreTicketRequest $request, Event $event, MaxiCashService $maxiCash): JsonResponse
+    public function store(StoreTicketRequest $request, Event $event): JsonResponse
     {
         $validated = $request->validated();
 
         $price = EventPrice::where('id', $validated['event_price_id'])
             ->where('event_id', $event->id)
             ->firstOrFail();
+
+        $gateway = $validated['pay_type'] ?? 'maxicash';
 
         $ticket = Ticket::create([
             'event_id' => $event->id,
@@ -56,16 +70,16 @@ class TicketController extends Controller
             'amount' => $price->amount,
             'currency' => $price->currency,
             'reference' => strtoupper(Str::random(10)),
-            'pay_type' => $validated['pay_type'],
-            'pay_sub_type' => null, // Plus besoin de sous-types
-            'payment_status' => $validated['pay_type'] === 'cash' ? 'pending_cash' : 'pending',
+            'pay_type' => $gateway,
+            'pay_sub_type' => null,
+            'payment_status' => in_array($gateway, ['cash', 'mpesa', 'orange_money']) ? 'pending_cash' : 'pending',
         ]);
 
-        // Si paiement en caisse, retourner directement les infos du ticket avec QR code
-        if ($validated['pay_type'] === 'cash') {
+        // Si paiement en caisse, mpesa ou orange_money : retourner directement les infos du ticket
+        if (in_array($gateway, ['cash', 'mpesa', 'orange_money'])) {
             return response()->json([
                 'success' => true,
-                'payment_mode' => 'cash',
+                'payment_mode' => $gateway,
                 'ticket' => [
                     'reference' => $ticket->reference,
                     'full_name' => $ticket->full_name,
@@ -81,17 +95,29 @@ class TicketController extends Controller
                         'event_id' => $event->id,
                         'amount' => $ticket->amount,
                         'currency' => $ticket->currency,
+                        'payment_mode' => $gateway,
                     ]),
                 ],
-                'message' => 'Ticket créé avec succès. Présentez ce QR code à la caisse pour finaliser votre paiement.',
+                'message' => $gateway === 'cash' 
+                    ? 'Ticket créé avec succès. Présentez ce QR code à la caisse pour finaliser votre paiement.'
+                    : 'Ticket créé avec succès. Suivez les instructions pour effectuer le paiement.',
             ], 201);
         }
 
-        // Sinon, continuer avec le flux MaxiCash normal
+        // Pour maxicash uniquement : créer le service de paiement
+        try {
+            $paymentService = PaymentGatewayFactory::create($gateway);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        // Préparer les URLs de callback
         $baseUrl = rtrim(config('app.url'), '/');
         $frontendUrl = rtrim(env('FRONTEND_NLC', $baseUrl), '/');
         
-        // Ajouter la référence du ticket dans les URLs de callback
         $successUrl = $validated['success_url'] ?? config('services.maxicash.success_url') ?? "{$frontendUrl}/paiement/success";
         $failureUrl = $validated['failure_url'] ?? config('services.maxicash.failure_url') ?? "{$frontendUrl}/paiement/failure";
         $cancelUrl = $validated['cancel_url'] ?? config('services.maxicash.cancel_url') ?? $failureUrl;
@@ -110,10 +136,10 @@ class TicketController extends Controller
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
             'failure_url' => $failureUrl,
-            'notify_url' => config('services.maxicash.notify_url') ?? "{$baseUrl}/api/webhooks/maxicash",
+            'notify_url' => config('services.maxicash.notify_url') ?? "{$baseUrl}/api/webhooks/{$gateway}",
         ];
 
-        $result = $maxiCash->initiatePaymentForTicket($ticket, $urls);
+        $result = $paymentService->initiatePaymentForTicket($ticket, $urls);
 
         if (! ($result['success'] ?? false)) {
             return response()->json([
@@ -129,11 +155,11 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'payment_mode' => 'online',
+            'payment_mode' => $gateway,
             'reference' => $ticket->reference,
             'redirect_url' => $result['redirect_url'],
             'log_id' => $result['log_id'] ?? null,
-            'message' => 'Redirection vers MaxiCash pour finaliser le paiement (Mobile Money, Visa, Carte ou PayPal).',
+            'message' => $result['message'] ?? "Redirection vers {$gateway} pour finaliser le paiement.",
         ], 201);
     }
 

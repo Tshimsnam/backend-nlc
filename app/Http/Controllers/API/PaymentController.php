@@ -5,17 +5,13 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\InitiatePaymentRequest;
 use App\Models\Participant;
-use App\Services\Payments\MaxiCashService;
+use App\Services\Payments\PaymentGatewayFactory;
 use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
-    public function __construct(
-        private MaxiCashService $maxiCashService
-    ) {}
-
     /**
-     * Initie un paiement MaxiCash pour un participant.
+     * Initie un paiement pour un participant selon le gateway choisi.
      */
     public function initiate(InitiatePaymentRequest $request): JsonResponse
     {
@@ -25,7 +21,28 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Aucun paiement associé à ce participant.'], 422);
         }
 
-        $result = $this->maxiCashService->initiatePayment(
+        $gateway = $request->gateway ?? $participant->payment->gateway ?? 'maxicash';
+
+        // Paiement en caisse : pas de traitement en ligne
+        if (!PaymentGatewayFactory::requiresOnlinePayment($gateway)) {
+            return response()->json([
+                'message' => 'Paiement en caisse enregistré',
+                'gateway' => $gateway,
+                'payment_id' => $participant->payment->id,
+            ]);
+        }
+
+        // Créer le service de paiement approprié
+        try {
+            $paymentService = PaymentGatewayFactory::create($gateway);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        // Initier le paiement
+        $result = $paymentService->initiatePayment(
             $participant->payment,
             $request->return_url,
             $request->cancel_url
@@ -38,9 +55,20 @@ class PaymentController extends Controller
         }
 
         return response()->json([
-            'message' => 'Paiement initié',
+            'message' => $result['message'] ?? 'Paiement initié',
             'redirect_url' => $result['redirect_url'],
-            'payment_id' => $result['payment_id'],
+            'payment_id' => $result['payment_id'] ?? $participant->payment->id,
+            'gateway' => $gateway,
+        ]);
+    }
+
+    /**
+     * Liste les gateways de paiement disponibles.
+     */
+    public function gateways(): JsonResponse
+    {
+        return response()->json([
+            'gateways' => PaymentGatewayFactory::availableGateways(),
         ]);
     }
 }

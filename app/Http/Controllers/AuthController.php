@@ -83,6 +83,53 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Afficher le formulaire de login (pour l'admin web)
+     */
+    public function showLoginForm()
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Traiter le login web (pour l'admin)
+     */
+    public function webLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return back()->withErrors([
+                'email' => 'Identifiants incorrects.',
+            ])->withInput();
+        }
+
+        // Vérifier que l'utilisateur a le rôle admin
+        $user->load('roles');
+        $hasAdminRole = $user->roles()->where('name', 'admin')->exists();
+
+        if (!$hasAdminRole) {
+            return back()->withErrors([
+                'email' => 'Accès refusé. Seuls les administrateurs peuvent se connecter.',
+            ])->withInput();
+        }
+
+        // Créer un token pour l'admin
+        $token = $user->createToken('admin_token')->plainTextToken;
+
+        // Stocker le token dans la session
+        $request->session()->put('admin_token', $token);
+        $request->session()->put('admin_user', $user);
+
+        // Rediriger vers le dashboard
+        return redirect()->route('admin.dashboard.view');
+    }
+
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
