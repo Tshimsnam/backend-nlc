@@ -248,7 +248,7 @@ class MaxiCashService
 
         $response = Http::withOptions([
             'verify' => false, // Désactiver la vérification SSL en développement
-        ])->asForm()->post("{$this->apiUrl}/Integration/PayMerchantTransaction", $payload);
+        ])->asForm()->post("{$this->apiUrl}/PayMerchantTransaction", $payload);
 
         if (! $response->successful()) {
             Log::error('MaxiCash initiate failed', ['response' => $response->body()]);
@@ -277,7 +277,7 @@ class MaxiCashService
     {
         $response = Http::withOptions([
             'verify' => false, // Désactiver la vérification SSL en développement
-        ])->asForm()->post("{$this->apiUrl}/Integration/GetTransactionStatus", [
+        ])->asForm()->post("{$this->apiUrl}/GetTransactionStatus", [
             'MerchantID' => $this->merchantId,
             'MerchantPassword' => $this->merchantPassword,
             'TransactionID' => $gatewayReference,

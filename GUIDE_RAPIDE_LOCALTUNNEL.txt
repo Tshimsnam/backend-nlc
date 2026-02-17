@@ -1,0 +1,187 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║              🚀 GUIDE RAPIDE - Résoudre l'erreur MaxiCash 302               ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+❌ PROBLÈME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Erreur sur la page MaxiCash:
+"Object reference not set to an instance of an object"
+
+Code HTTP: 302 Found → Redirection vers payfailure.aspx
+
+🔍 CAUSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MaxiCash ne peut pas accéder à vos URLs de callback car elles sont LOCALES:
+
+❌ http://192.168.58.9:8080/paiement/success  (non accessible depuis Internet)
+❌ http://192.168.58.9:8080/paiement/failure
+❌ http://192.168.58.9:8080/paiement/cancel
+
+MaxiCash a besoin d'URLs PUBLIQUES (accessibles depuis Internet).
+
+✅ SOLUTION: LocalTunnel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 ÉTAPE 1: Installer LocalTunnel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ouvrez un terminal et exécutez:
+
+    npm install -g localtunnel
+
+Vérifiez l'installation:
+
+    lt --version
+
+
+🖥️ ÉTAPE 2: Démarrer le backend Laravel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terminal 1:
+
+    cd D:\choupole\Projects\Website\backend-nlc
+    php artisan serve --host=192.168.58.9 --port=8000
+
+Laissez ce terminal ouvert!
+
+
+🌐 ÉTAPE 3: Exposer le backend avec LocalTunnel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terminal 2:
+
+    lt --port 8000 --subdomain nlc-maxicash-api-rdc
+
+Vous obtiendrez:
+    your url is: https://nlc-maxicash-api-rdc.loca.lt
+
+Laissez ce terminal ouvert!
+
+
+💻 ÉTAPE 4: Démarrer le frontend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terminal 3:
+
+    cd D:\choupole\Projects\Website\frontend-nlc
+    npm run dev
+
+Laissez ce terminal ouvert!
+
+
+🌐 ÉTAPE 5: Exposer le frontend avec LocalTunnel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terminal 4:
+
+    lt --port 8080 --subdomain nlc-maxicash-rdc
+
+Vous obtiendrez:
+    your url is: https://nlc-maxicash-rdc.loca.lt
+
+Laissez ce terminal ouvert!
+
+
+🔓 ÉTAPE 6: Autoriser LocalTunnel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ouvrez dans votre navigateur et cliquez sur "Continue":
+
+    https://nlc-maxicash-rdc.loca.lt
+    https://nlc-maxicash-api-rdc.loca.lt
+
+
+📝 ÉTAPE 7: Mettre à jour le fichier .env
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Le fichier .env a déjà été mis à jour avec les URLs LocalTunnel:
+
+    MAXICASH_SUCCESS_URL=https://nlc-maxicash-rdc.loca.lt/paiement/success
+    MAXICASH_FAILURE_URL=https://nlc-maxicash-rdc.loca.lt/paiement/failure
+    MAXICASH_CANCEL_URL=https://nlc-maxicash-rdc.loca.lt/paiement/cancel
+    MAXICASH_NOTIFY_URL=https://nlc-maxicash-api-rdc.loca.lt/api/webhooks/maxicash
+
+
+🔄 ÉTAPE 8: Redémarrer Laravel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dans le Terminal 1 (backend Laravel):
+
+    1. Appuyez sur Ctrl+C pour arrêter
+    2. Exécutez: php artisan config:clear
+    3. Exécutez: php artisan serve --host=192.168.58.9 --port=8000
+
+
+🧪 ÉTAPE 9: Tester l'inscription
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Accédez à votre application:
+
+    Local:  http://192.168.58.9:8080/evenements/1
+    Public: https://nlc-maxicash-rdc.loca.lt/evenements/1
+
+Remplissez le formulaire et cliquez sur "S'inscrire".
+
+Vous serez redirigé vers MaxiCash et la page devrait s'afficher SANS ERREUR!
+
+
+✅ RÉSULTAT ATTENDU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Page MaxiCash s'affiche correctement
+✅ Montant affiché: 15.00 USD
+✅ Options de paiement visibles:
+   - MaxiCash Wallet
+   - Mobile Money (Airtel, Orange, Vodacom)
+   - Carte bancaire (Visa, Mastercard)
+   - PayPal
+✅ Après paiement: redirection vers votre site
+✅ Référence du ticket affichée
+
+
+📊 RÉCAPITULATIF DES TERMINAUX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terminal 1: Backend Laravel (port 8000)
+Terminal 2: LocalTunnel backend (expose port 8000)
+Terminal 3: Frontend (port 8080)
+Terminal 4: LocalTunnel frontend (expose port 8080)
+
+Tous les terminaux doivent rester ouverts!
+
+
+⚠️ IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- LocalTunnel est GRATUIT mais peut être lent
+- Les URLs restent les mêmes avec --subdomain
+- Vous devez autoriser LocalTunnel à chaque démarrage
+- Pour la production, utilisez un vrai domaine
+
+
+🔧 DÉPANNAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Erreur persiste?
+
+1. Vérifiez que LocalTunnel est autorisé:
+   Ouvrez https://nlc-maxicash-rdc.loca.lt et cliquez "Continue"
+
+2. Vérifiez les URLs dans .env:
+   grep MAXICASH .env
+
+3. Testez les URLs publiques:
+   curl https://nlc-maxicash-api-rdc.loca.lt/api/test
+
+4. Vérifiez les logs:
+   tail -f storage/logs/laravel.log
+
+
+📚 DOCUMENTATION COMPLÈTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Consultez ces fichiers pour plus de détails:
+
+- SOLUTION_ERREUR_MAXICASH_302.md  - Solution complète
+- README_MAXICASH.md               - Configuration LocalTunnel
+- BACKEND_LOCALTUNNEL_SETUP.md     - Guide détaillé
+- BACKEND_CLOUDFLARE_SETUP.md      - Alternative Cloudflare
+
+
+📞 BESOIN D'AIDE?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Consultez: SOLUTION_ERREUR_MAXICASH_302.md
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    🎉 Bonne chance avec vos tests! 🎉                        ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

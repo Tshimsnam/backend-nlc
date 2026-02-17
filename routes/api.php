@@ -20,19 +20,35 @@ use App\Http\Controllers\API\EventController as APIEventController;
 use App\Http\Controllers\API\RegistrationController;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\TicketController;
+use App\Http\Controllers\API\ReservationController;
 use App\Http\Controllers\Webhooks\MaxiCashWebhookController;
+use App\Http\Controllers\Webhooks\MpesaWebhookController;
+use App\Http\Controllers\Webhooks\OrangeMoneyWebhookController;
 use App\Http\Controllers\API\EventPriceController;
+use App\Http\Controllers\API\EventScanController;
 
 // --- Événements (lecture publique)
 Route::get('/events', [APIEventController::class, 'index']);
 Route::get('/events/{event:slug}', [APIEventController::class, 'show']);
+
+// --- Scan QR Code événement
+Route::post('/events/{slug}/scan', [EventScanController::class, 'recordScan']);
+Route::get('/events/{slug}/scans', [EventScanController::class, 'getEventScans']);
 
 // --- Prix des événements (lecture publique pour affichage frontend)
 Route::get('/events/{event}/prices', [EventPriceController::class, 'index']);
 
 // --- Inscription à un événement (création ticket) + modes de paiement
 Route::post('/events/{event}/register', [TicketController::class, 'store']);
-Route::get('/payment-modes', [TicketController::class, 'paymentModes']);
+Route::get('/events/{event}/tickets/payment-modes', [TicketController::class, 'paymentModes']);
+
+// --- Système de réservation en 2 étapes (NOUVEAU)
+// Étape 1: Créer une réservation (référence) avec juste event_price_id
+Route::post('/events/{event}/reserve', [ReservationController::class, 'createReservation']);
+// Étape 2: Compléter la réservation avec les informations du participant
+Route::post('/reservations/{reference}/complete', [ReservationController::class, 'completeReservation']);
+// Vérifier le statut d'une réservation
+Route::get('/reservations/{reference}', [ReservationController::class, 'checkReservation']);
 
 // --- Test route
 Route::get('/test', function() {
@@ -46,9 +62,13 @@ Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 // --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
 
-// --- Webhook MaxiCash (POST ou GET selon doc MaxiCash)
+// --- Webhooks pour les paiements
 Route::match(['get', 'post'], '/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
     ->middleware('maxicash.signature');
+
+Route::post('/webhooks/mpesa', [MpesaWebhookController::class, 'handle']);
+
+Route::post('/webhooks/orange-money', [OrangeMoneyWebhookController::class, 'handle']);
 
 Route::middleware([VerifyApiSecret::class])->group(function () {
     Route::post('/users', [AuthController::class, 'register']);
