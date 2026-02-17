@@ -49,4 +49,20 @@ return [
         'notify_url' => env('MAXICASH_NOTIFY_URL'), // URL du webhook ou page notify
     ],
 
+    'mpesa' => [
+        'consumer_key' => env('MPESA_CONSUMER_KEY'),
+        'consumer_secret' => env('MPESA_CONSUMER_SECRET'),
+        'shortcode' => env('MPESA_SHORTCODE'),
+        'passkey' => env('MPESA_PASSKEY'),
+        'sandbox' => env('MPESA_SANDBOX', true),
+        'api_url' => env('MPESA_API_URL', 'https://sandbox.safaricom.co.ke'),
+    ],
+
+    'orange_money' => [
+        'merchant_id' => env('ORANGE_MONEY_MERCHANT_ID'),
+        'merchant_key' => env('ORANGE_MONEY_MERCHANT_KEY'),
+        'sandbox' => env('ORANGE_MONEY_SANDBOX', true),
+        'api_url' => env('ORANGE_MONEY_API_URL', 'https://api.orange.com/orange-money-webpay/dev/v1'),
+    ],
+
 ];

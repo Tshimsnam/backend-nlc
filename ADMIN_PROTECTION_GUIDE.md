@@ -8,6 +8,8 @@ Toutes les routes `DELETE` du système NLC sont maintenant **protégées** et ac
 
 Les routes suivantes nécessitent le rôle `admin` :
 
+### Routes DELETE (Suppression)
+
 | Route | Contrôleur | Description |
 |-------|------------|-------------|
 | `DELETE /api/children/{child}` | ChildController@destroy | Supprimer un enfant |
@@ -19,6 +21,36 @@ Les routes suivantes nécessitent le rôle `admin` :
 | `DELETE /api/notifications/{notification}` | NotificationController@destroy | Supprimer une notification |
 | `DELETE /api/dossiers/{dossier}` | DossierController@destroy | Supprimer un dossier |
 | `DELETE /api/settings/{setting}` | SettingController@destroy | Supprimer un paramètre |
+| `DELETE /api/events/{event}` | EventController@destroy | Supprimer un événement |
+| `DELETE /api/events/{event}/prices/{eventPrice}` | EventPriceController@destroy | Supprimer un tarif |
+
+### Routes Admin Dashboard
+
+| Route | Contrôleur | Description |
+|-------|------------|-------------|
+| `GET /admin/dashboard` | DashboardController@index | Statistiques générales |
+| `GET /admin/tickets/pending` | DashboardController@pendingTickets | Tickets en attente |
+| `POST /admin/tickets/{reference}/validate` | DashboardController@validateTicket | Valider un ticket |
+| `GET /admin/users` | DashboardController@users | Liste des utilisateurs |
+| `GET /admin/events/stats` | DashboardController@eventsStats | Statistiques événements |
+
+**Note:** Ces routes sont dans `routes/web.php` et non dans `routes/api.php`.
+
+### Routes Événements (Admin uniquement)
+
+| Route | Contrôleur | Description |
+|-------|------------|-------------|
+| `POST /api/events` | EventController@store | Créer un événement |
+| `PUT /api/events/{event}` | EventController@update | Modifier un événement |
+| `POST /api/events/{event}/prices` | EventPriceController@store | Créer un tarif |
+| `PUT /api/events/{event}/prices/{eventPrice}` | EventPriceController@update | Modifier un tarif |
+
+### Routes Validation Paiements (Admin uniquement)
+
+| Route | Contrôleur | Description |
+|-------|------------|-------------|
+| `GET /api/tickets/pending-cash` | TicketController@pendingCashPayments | Tickets en attente de validation |
+| `POST /api/tickets/{ticketNumber}/validate-cash` | TicketController@validateCashPayment | Valider un paiement en caisse |
 
 ## 🛠️ Implémentation Technique
 
