@@ -95,6 +95,12 @@
 
         function generateQR() {
             const url = document.getElementById('eventUrl').value;
+            
+            // Ajouter ?qr=true si pas déjà présent
+            const finalUrl = url.includes('?') 
+                ? (url.includes('qr=') ? url : `${url}&qr=true`)
+                : `${url}?qr=true`;
+            
             const qrcodeDiv = document.getElementById("qrcode");
             
             // Clear previous QR code
@@ -102,7 +108,7 @@
             
             // Generate new QR code
             qrcodeInstance = new QRCode(qrcodeDiv, {
-                text: url,
+                text: finalUrl,
                 width: 300,
                 height: 300,
                 colorDark: "#000000",

@@ -126,6 +126,20 @@ const EventInscriptionPage = () => {
             setFormData((prev) => ({ ...prev, event_price_id: price.id }));
           }
         }
+
+        // Enregistrer le scan de l'événement si l'utilisateur vient d'un QR code
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromQR = urlParams.get('qr') === 'true' || urlParams.get('from') === 'qr';
+        
+        if (fromQR) {
+          try {
+            await axios.post(`${API_URL}/events/${slug}/scan`);
+            console.log('✅ Scan événement enregistré');
+          } catch (scanErr) {
+            console.error('Erreur lors de l\'enregistrement du scan:', scanErr);
+            // Ne pas bloquer l'utilisateur si le scan échoue
+          }
+        }
       } catch (err) {
         console.error("Erreur lors du chargement:", err);
         setError("Impossible de charger les données");

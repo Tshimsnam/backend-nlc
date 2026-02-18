@@ -12,6 +12,8 @@ return [
         'http://192.168.241.9:8080',
         env('FRONTEND_NLC'), 
         env('FRONTEND_WEBSITE_URL'),
+        env('MOBILE_TICKET_URL'),
+        env('MOBILE_TICKET_APP'),
     ],
 
     'allowed_origins_patterns' => [],
