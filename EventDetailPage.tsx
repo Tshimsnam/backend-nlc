@@ -46,12 +46,18 @@ const EventDetailPage = () => {
           prices: data.event_prices ?? [],
         });
 
-        // Enregistrer le scan du QR code
-        try {
-          await axios.post(`${apiUrl}/${slug}/scan`);
-          console.log('✅ Scan QR enregistré');
-        } catch (scanError) {
-          console.error('❌ Erreur lors de l\'enregistrement du scan:', scanError);
+        // Enregistrer le scan du QR code seulement si l'utilisateur vient d'un QR code
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromQR = urlParams.get('qr') === 'true' || urlParams.get('from') === 'qr';
+        
+        if (fromQR) {
+          try {
+            await axios.post(`${apiUrl}/${slug}/scan`);
+            console.log('✅ Scan QR événement enregistré');
+          } catch (scanError) {
+            console.error('❌ Erreur lors de l\'enregistrement du scan:', scanError);
+            // Ne pas bloquer l'utilisateur si le scan échoue
+          }
         }
       } catch {
         setError("Impossible de charger l'événement");

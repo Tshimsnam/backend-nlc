@@ -26,6 +26,8 @@ use App\Http\Controllers\Webhooks\MpesaWebhookController;
 use App\Http\Controllers\Webhooks\OrangeMoneyWebhookController;
 use App\Http\Controllers\API\EventPriceController;
 use App\Http\Controllers\API\EventScanController;
+use App\Http\Controllers\API\QRScanController;
+use App\Http\Controllers\Admin\DashboardController;
 
 // --- Événements (lecture publique)
 Route::get('/events', [APIEventController::class, 'index']);
@@ -61,6 +63,14 @@ Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 
 // --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
+
+// --- Scan de billets (QR Code)
+// Scanner un billet (via QR code, référence ou téléphone)
+Route::post('/tickets/scan', [QRScanController::class, 'scan'])->middleware('auth:sanctum');
+// Historique des scans d'un billet
+Route::get('/tickets/{reference}/scans', [QRScanController::class, 'getScanHistory'])->middleware('auth:sanctum');
+// Statistiques de scan pour un événement
+Route::get('/events/{eventId}/scan-stats', [QRScanController::class, 'getEventScanStats'])->middleware('auth:sanctum');
 
 // --- Webhooks pour les paiements
 Route::match(['get', 'post'], '/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
@@ -129,6 +139,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Validation des paiements en caisse (admin uniquement)
     Route::get('/tickets/pending-cash', [TicketController::class, 'pendingCashPayments'])->middleware('admin.only');
     Route::post('/tickets/{ticketNumber}/validate-cash', [TicketController::class, 'validateCashPayment'])->middleware('admin.only');
+
+    // Routes admin pour le dashboard
+    Route::prefix('admin')->middleware('admin.only')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/pending-tickets', [DashboardController::class, 'pendingTickets']);
+        Route::post('/dashboard/validate-ticket/{reference}', [DashboardController::class, 'validateTicket']);
+        Route::get('/dashboard/users', [DashboardController::class, 'users']);
+        Route::get('/dashboard/events-stats', [DashboardController::class, 'eventsStats']);
+        Route::get('/dashboard/scan-stats', [DashboardController::class, 'scanStats']);
+    });
 });
 
 
