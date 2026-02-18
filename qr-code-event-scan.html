@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Événement - Compteur de Scans</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">QR Code Événement</h1>
+                    <p class="text-gray-600">Compteur de scans pour l'événement</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="font-bold text-blue-900 mb-2">📊 À quoi sert ce QR code ?</h3>
+                <p class="text-sm text-blue-800">Ce QR code permet de compter combien de personnes scannent l'événement (pour voir les détails, s'inscrire, etc.). C'est différent du QR code du billet.</p>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Configuration</h2>
+
+            <!-- Environment Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Environnement</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="setEnvironment('local')" id="btn-local" class="px-4 py-3 border-2 border-blue-600 bg-blue-50 text-blue-900 rounded-lg font-medium transition">
+                        🏠 Local (Développement)
+                    </button>
+                    <button onclick="setEnvironment('production')" id="btn-production" class="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-green-600 hover:bg-green-50 hover:text-green-900 transition">
+                        🌐 Production
+                    </button>
+                </div>
+            </div>
+
+            <!-- Event Slug -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Slug de l'événement</label>
+                <input 
+                    type="text" 
+                    id="eventSlug" 
+                    value="le-trouble-du-spectre-autistique-et-la-scolarite"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="mon-evenement"
+                >
+                <p class="text-xs text-gray-500 mt-2">💡 Le slug est l'identifiant unique de l'événement dans l'URL</p>
+            </div>
+
+            <!-- Base URL (for local) -->
+            <div id="localUrlSection" class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">URL de base (Local)</label>
+                <input 
+                    type="text" 
+                    id="baseUrl" 
+                    value="http://192.168.171.9:8080"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="http://localhost:8080"
+                >
+                <div class="mt-2 space-y-1">
+                    <button onclick="setBaseUrl('http://localhost:8080')" class="text-xs text-blue-600 hover:underline mr-4">localhost:8080</button>
+                    <button onclick="setBaseUrl('http://192.168.171.9:8080')" class="text-xs text-blue-600 hover:underline mr-4">192.168.171.9:8080</button>
+                    <button onclick="setBaseUrl('http://localhost:8080')" class="text-xs text-blue-600 hover:underline">localhost:8080</button>
+                </div>
+            </div>
+
+            <!-- Production URL -->
+            <div id="productionUrlSection" class="mb-6 hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">URL de production</label>
+                <input 
+                    type="text" 
+                    id="productionUrl" 
+                    value="https://votre-site.com"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="https://votre-site.com"
+                >
+            </div>
+
+            <!-- Generated URL Preview -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">URL générée</label>
+                <div class="flex items-center gap-2">
+                    <input 
+                        type="text" 
+                        id="generatedUrl" 
+                        readonly
+                        class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono"
+                    >
+                    <button onclick="copyUrl()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        📋 Copier
+                    </button>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button 
+                onclick="generateQR()" 
+                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg transition shadow-lg"
+            >
+                🔄 Générer le QR Code
+            </button>
+        </div>
+
+        <!-- QR Code Display -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">QR Code</h2>
+            
+            <div class="flex flex-col items-center">
+                <div id="qrcode" class="bg-white p-6 rounded-xl border-4 border-gray-200 shadow-inner mb-6"></div>
+                
+                <div class="flex gap-4 w-full max-w-md">
+                    <button 
+                        onclick="downloadQR()" 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Télécharger
+                    </button>
+                    <button 
+                        onclick="printQR()" 
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                        </svg>
+                        Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <!-- How it works -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span class="text-2xl">💡</span>
+                    Comment ça marche ?
+                </h3>
+                <ol class="space-y-3 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-blue-600">1.</span>
+                        <span>Une personne scanne ce QR code avec son téléphone</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-blue-600">2.</span>
+                        <span>Elle est redirigée vers la page de l'événement</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-blue-600">3.</span>
+                        <span>Le scan est automatiquement enregistré dans la base de données</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="font-bold text-blue-600">4.</span>
+                        <span>Vous pouvez voir les statistiques dans le dashboard admin</span>
+                    </li>
+                </ol>
+            </div>
+
+            <!-- Use cases -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span class="text-2xl">🎯</span>
+                    Cas d'utilisation
+                </h3>
+                <ul class="space-y-3 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>Afficher sur des affiches publicitaires</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>Partager sur les réseaux sociaux</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>Imprimer sur des flyers</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>Mesurer l'engagement du public</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>Analyser les sources de trafic</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- API Info -->
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
+            <h3 class="text-xl font-bold text-purple-900 mb-4">🔌 Informations Techniques</h3>
+            <div class="space-y-3 text-sm">
+                <div class="bg-white rounded-lg p-3">
+                    <span class="font-bold text-gray-700">Endpoint API:</span>
+                    <code class="block mt-1 text-xs bg-gray-100 p-2 rounded font-mono">POST /api/events/{slug}/scan</code>
+                </div>
+                <div class="bg-white rounded-lg p-3">
+                    <span class="font-bold text-gray-700">Statistiques:</span>
+                    <code class="block mt-1 text-xs bg-gray-100 p-2 rounded font-mono">GET /api/events/{slug}/scans</code>
+                </div>
+                <div class="bg-white rounded-lg p-3">
+                    <span class="font-bold text-gray-700">Dashboard Admin:</span>
+                    <code class="block mt-1 text-xs bg-gray-100 p-2 rounded font-mono">GET /api/admin/dashboard/scan-stats</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qrcodeInstance = null;
+        let currentEnvironment = 'local';
+
+        function setEnvironment(env) {
+            currentEnvironment = env;
+            
+            // Update button styles
+            const btnLocal = document.getElementById('btn-local');
+            const btnProduction = document.getElementById('btn-production');
+            const localSection = document.getElementById('localUrlSection');
+            const productionSection = document.getElementById('productionUrlSection');
+            
+            if (env === 'local') {
+                btnLocal.className = 'px-4 py-3 border-2 border-blue-600 bg-blue-50 text-blue-900 rounded-lg font-medium transition';
+                btnProduction.className = 'px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-green-600 hover:bg-green-50 hover:text-green-900 transition';
+                localSection.classList.remove('hidden');
+                productionSection.classList.add('hidden');
+            } else {
+                btnLocal.className = 'px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-blue-600 hover:bg-blue-50 hover:text-blue-900 transition';
+                btnProduction.className = 'px-4 py-3 border-2 border-green-600 bg-green-50 text-green-900 rounded-lg font-medium transition';
+                localSection.classList.add('hidden');
+                productionSection.classList.remove('hidden');
+            }
+            
+            updateGeneratedUrl();
+        }
+
+        function setBaseUrl(url) {
+            document.getElementById('baseUrl').value = url;
+            updateGeneratedUrl();
+        }
+
+        function updateGeneratedUrl() {
+            const slug = document.getElementById('eventSlug').value;
+            let baseUrl;
+            
+            if (currentEnvironment === 'local') {
+                baseUrl = document.getElementById('baseUrl').value;
+            } else {
+                baseUrl = document.getElementById('productionUrl').value;
+            }
+            
+            // Ajouter le paramètre ?qr=true pour tracker les scans
+            const fullUrl = `${baseUrl}/evenements/${slug}?qr=true`;
+            document.getElementById('generatedUrl').value = fullUrl;
+        }
+
+        function generateQR() {
+            updateGeneratedUrl();
+            const url = document.getElementById('generatedUrl').value;
+            const qrcodeDiv = document.getElementById("qrcode");
+            
+            // Clear previous QR code
+            qrcodeDiv.innerHTML = '';
+            
+            // Generate new QR code
+            qrcodeInstance = new QRCode(qrcodeDiv, {
+                text: url,
+                width: 300,
+                height: 300,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function copyUrl() {
+            const urlInput = document.getElementById('generatedUrl');
+            urlInput.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copié!';
+            btn.classList.add('bg-green-600');
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('bg-green-600');
+            }, 2000);
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                alert('Veuillez d\'abord générer un QR code');
+                return;
+            }
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            const slug = document.getElementById('eventSlug').value;
+            link.download = `qr-event-${slug}.png`;
+            link.href = url;
+            link.click();
+        }
+
+        function printQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                alert('Veuillez d\'abord générer un QR code');
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            const slug = document.getElementById('eventSlug').value;
+            const url = document.getElementById('generatedUrl').value;
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>QR Code - ${slug}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 100vh;
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .container {
+                            text-align: center;
+                            max-width: 600px;
+                        }
+                        h1 {
+                            font-size: 24px;
+                            margin-bottom: 10px;
+                        }
+                        .url {
+                            font-size: 12px;
+                            color: #666;
+                            margin-bottom: 20px;
+                            word-break: break-all;
+                        }
+                        img {
+                            max-width: 400px;
+                            border: 4px solid #000;
+                            padding: 20px;
+                        }
+                        .instructions {
+                            margin-top: 20px;
+                            font-size: 14px;
+                            color: #333;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Scannez pour voir l'événement</h1>
+                        <div class="url">${url}</div>
+                        <img src="${canvas.toDataURL()}" />
+                        <div class="instructions">
+                            <p><strong>Scannez ce QR code avec votre téléphone</strong></p>
+                            <p>pour accéder aux détails de l'événement et vous inscrire</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        // Update URL when slug changes
+        document.getElementById('eventSlug').addEventListener('input', updateGeneratedUrl);
+        document.getElementById('baseUrl').addEventListener('input', updateGeneratedUrl);
+        document.getElementById('productionUrl').addEventListener('input', updateGeneratedUrl);
+
+        // Generate QR code on page load
+        window.onload = function() {
+            updateGeneratedUrl();
+            generateQR();
+        };
+    </script>
+</body>
+</html>

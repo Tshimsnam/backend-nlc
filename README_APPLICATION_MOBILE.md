@@ -29,6 +29,15 @@ Affichage des informations :
 - Montant payé
 - Statut du paiement
 - Date d'achat
+- **Nombre de scans** : Combien de fois le billet a été scanné
+- **Premier scan** : Date et heure du premier scan
+- **Dernier scan** : Date et heure du dernier scan
+
+**Enregistrement automatique du scan :**
+- Chaque scan est enregistré dans la base de données
+- Le compteur de scans est incrémenté automatiquement
+- L'agent qui a scanné est enregistré
+- Le lieu du scan est enregistré (Entrée, VIP, etc.)
 
 ### 4. Enregistrement d'un Client
 - Création de nouveaux clients/participants
@@ -161,6 +170,94 @@ Response:
 }
 ```
 
+**Scanner un Billet (Enregistre le scan)**
+```http
+POST /tickets/scan
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "qr_data": "{\"reference\":\"ABC123XYZ\",\"event\":\"Concert de Musique\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-03-15\",\"location\":\"Kinshasa\"}",
+  "scan_location": "Entrée principale"
+}
+
+OU avec référence uniquement:
+
+{
+  "reference": "ABC123XYZ",
+  "scan_location": "Entrée VIP"
+}
+
+OU avec téléphone:
+
+{
+  "phone": "+243812345678",
+  "scan_location": "Entrée"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Billet scanné avec succès",
+  "ticket": {
+    "id": 1,
+    "reference": "ABC123XYZ",
+    "full_name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+243 812 345 678",
+    "category": "medecin",
+    "amount": "50.00",
+    "currency": "USD",
+    "payment_status": "completed",
+    "scan_count": 3,
+    "first_scanned_at": "2026-02-18T10:00:00.000000Z",
+    "last_scanned_at": "2026-02-18T14:30:00.000000Z",
+    "event": {
+      "id": 1,
+      "title": "Concert de Musique",
+      "date": "2026-03-15",
+      "time": "09:00:00",
+      "location": "Stade des Martyrs"
+    },
+    "price": {
+      "label": "Médecin - Événement complet",
+      "category": "medecin",
+      "duration_type": "full_event"
+    }
+  },
+  "scan_info": {
+    "scan_count": 3,
+    "is_first_scan": false,
+    "last_scanned_at": "2026-02-18T14:30:00.000000Z"
+  }
+}
+```
+
+**Historique des Scans d'un Billet**
+```http
+GET /tickets/{reference}/scans
+Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "ticket_reference": "ABC123XYZ",
+  "total_scans": 3,
+  "scans": [
+    {
+      "id": 3,
+      "scanned_at": "2026-02-18T14:30:00.000000Z",
+      "scan_location": "Entrée principale",
+      "scanned_by_user": {
+        "id": 5,
+        "name": "Agent Dupont",
+        "email": "agent@example.com"
+      }
+    }
+  ]
+}
+```
+
 **Par Téléphone**
 ```http
 GET /tickets/search?phone=+243812345678
@@ -177,14 +274,6 @@ Response:
     }
   ]
 }
-```
-
-**Par QR Code (gateway_log_id)**
-```http
-GET /tickets/{reference}?gateway_log_id={log_id}
-Authorization: Bearer {token}
-
-Response: (même format que par référence)
 ```
 
 #### 3. Enregistrement d'un Participant
@@ -656,6 +745,36 @@ export const getTicketByReference = async (reference) => {
   }
 };
 
+export const scanTicket = async (qrData, scanLocation = 'Entrée') => {
+  try {
+    const response = await api.post('/tickets/scan', {
+      qr_data: qrData,
+      scan_location: scanLocation
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors du scan' 
+    };
+  }
+};
+
+export const scanTicketByReference = async (reference, scanLocation = 'Entrée') => {
+  try {
+    const response = await api.post('/tickets/scan', {
+      reference: reference,
+      scan_location: scanLocation
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors du scan' 
+    };
+  }
+};
+
 export const searchTicketByPhone = async (phone) => {
   try {
     const response = await api.get(`/tickets/search?phone=${phone}`);
@@ -664,6 +783,18 @@ export const searchTicketByPhone = async (phone) => {
     return { 
       success: false, 
       message: error.response?.data?.message || 'Aucun billet trouvé' 
+    };
+  }
+};
+
+export const getTicketScanHistory = async (reference) => {
+  try {
+    const response = await api.get(`/tickets/${reference}/scans`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors de la récupération de l\'historique' 
     };
   }
 };
@@ -692,11 +823,13 @@ import { View, StyleSheet } from 'react-native';
 const QRScanner = ({ onScan }) => {
   const handleBarCodeRead = (event) => {
     try {
+      // Le QR code contient un JSON avec toutes les infos
       const data = JSON.parse(event.data);
-      onScan(data.reference);
+      // Envoyer les données complètes pour enregistrer le scan
+      onScan(event.data, data.reference);
     } catch (error) {
       // Si ce n'est pas du JSON, c'est peut-être juste la référence
-      onScan(event.data);
+      onScan(null, event.data);
     }
   };
 
@@ -722,6 +855,109 @@ const styles = StyleSheet.create({
 });
 
 export default QRScanner;
+```
+
+### 5. Écran de Scan avec Enregistrement
+
+```javascript
+// src/screens/ScanQRScreen.js
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import QRScanner from '../components/QRScanner';
+import { scanTicket, scanTicketByReference } from '../services/tickets';
+
+const ScanQRScreen = ({ navigation }) => {
+  const [scanning, setScanning] = useState(true);
+
+  const handleScan = async (qrData, reference) => {
+    if (!scanning) return;
+    
+    setScanning(false);
+
+    try {
+      let result;
+      
+      if (qrData) {
+        // Scanner avec les données complètes du QR code
+        result = await scanTicket(qrData, 'Entrée principale');
+      } else {
+        // Scanner avec juste la référence
+        result = await scanTicketByReference(reference, 'Entrée principale');
+      }
+
+      if (result.success) {
+        const { ticket, scan_info } = result.data;
+        
+        // Afficher une alerte si c'est le premier scan
+        if (scan_info.is_first_scan) {
+          Alert.alert(
+            '✅ Premier Scan',
+            `Bienvenue ${ticket.full_name}!\nC'est votre premier scan.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => navigation.navigate('TicketDetails', { ticket, scan_info })
+              }
+            ]
+          );
+        } else {
+          Alert.alert(
+            '✅ Billet Scanné',
+            `${ticket.full_name}\nScan #${scan_info.scan_count}`,
+            [
+              {
+                text: 'Voir Détails',
+                onPress: () => navigation.navigate('TicketDetails', { ticket, scan_info })
+              },
+              {
+                text: 'Scanner Suivant',
+                onPress: () => setScanning(true)
+              }
+            ]
+          );
+        }
+      } else {
+        Alert.alert('Erreur', result.message, [
+          { text: 'Réessayer', onPress: () => setScanning(true) }
+        ]);
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Une erreur est survenue', [
+        { text: 'Réessayer', onPress: () => setScanning(true) }
+      ]);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {scanning ? (
+        <QRScanner onScan={handleScan} />
+      ) : (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Traitement...</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+});
+
+export default ScanQRScreen;
 ```
 
 ### 5. Écran de Détails du Billet

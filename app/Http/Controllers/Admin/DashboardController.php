@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\EventScan;
+use App\Models\TicketScan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +34,8 @@ class DashboardController extends Controller
             'total_events' => Event::count(),
             'active_events' => Event::where('date', '>=', now())->count(),
             'total_users' => User::count(),
-            'total_qr_scans' => EventScan::count(),
+            'total_qr_scans' => TicketScan::count(),
+            'tickets_scanned' => Ticket::where('scan_count', '>', 0)->count(),
         ];
 
         // Tickets récents
@@ -60,6 +62,8 @@ class DashboardController extends Controller
             'total_events' => Event::count(),
             'active_events' => Event::where('date', '>=', now())->count(),
             'total_users' => User::count(),
+            'total_qr_scans' => TicketScan::count(),
+            'tickets_scanned' => Ticket::where('scan_count', '>', 0)->count(),
         ];
 
         // Tickets par mode de paiement
@@ -203,5 +207,67 @@ class DashboardController extends Controller
             ->get();
 
         return response()->json($events);
+    }
+
+    /**
+     * Statistiques des scans de billets
+     */
+    public function scanStats(): JsonResponse
+    {
+        // Statistiques globales
+        $globalStats = [
+            'total_scans' => TicketScan::count(),
+            'unique_tickets_scanned' => Ticket::where('scan_count', '>', 0)->count(),
+            'total_tickets' => Ticket::count(),
+            'scan_rate' => Ticket::count() > 0 
+                ? round((Ticket::where('scan_count', '>', 0)->count() / Ticket::count()) * 100, 2) 
+                : 0,
+        ];
+
+        // Scans par événement
+        $scansByEvent = Event::select('events.id', 'events.title', 'events.date')
+            ->withCount(['tickets as total_tickets'])
+            ->withCount(['tickets as scanned_tickets' => function ($query) {
+                $query->where('scan_count', '>', 0);
+            }])
+            ->addSelect([
+                'total_scans' => TicketScan::selectRaw('COUNT(*)')
+                    ->whereColumn('event_id', 'events.id')
+            ])
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($event) {
+                $event->scan_rate = $event->total_tickets > 0 
+                    ? round(($event->scanned_tickets / $event->total_tickets) * 100, 2) 
+                    : 0;
+                return $event;
+            });
+
+        // Scans récents
+        $recentScans = TicketScan::with([
+            'ticket:id,reference,full_name,event_id',
+            'event:id,title',
+            'scannedBy:id,name'
+        ])
+            ->orderBy('scanned_at', 'desc')
+            ->limit(20)
+            ->get();
+
+        // Scans par jour (7 derniers jours)
+        $scansByDay = TicketScan::select(
+            DB::raw('DATE(scanned_at) as date'),
+            DB::raw('COUNT(*) as count')
+        )
+            ->where('scanned_at', '>=', now()->subDays(7))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        return response()->json([
+            'global_stats' => $globalStats,
+            'scans_by_event' => $scansByEvent,
+            'recent_scans' => $recentScans,
+            'scans_by_day' => $scansByDay,
+        ]);
     }
 }
