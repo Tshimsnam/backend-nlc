@@ -5,7 +5,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, CheckCircle, Printer, Download, Calendar, MapPin, Ticket, User, Mail, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Download, Calendar, MapPin, Ticket, User, Mail, Phone } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import axios from "axios";
 import jsPDF from 'jspdf';
@@ -29,10 +29,26 @@ interface Event {
   title: string;
   slug: string;
   description: string;
+  full_description?: string;
   date: string;
+  end_date?: string;
   time: string;
+  end_time?: string;
   location: string;
+  venue_details?: string;
   image: string;
+  agenda?: Array<{
+    day: string;
+    time: string;
+    activities: string;
+  }>;
+  capacity?: number;
+  registered?: number;
+  contact_phone?: string;
+  contact_email?: string;
+  organizer?: string;
+  registration_deadline?: string;
+  sponsors?: string[];
   event_prices: EventPrice[];
 }
 
@@ -59,6 +75,7 @@ const EventInscriptionPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<any>(null);
+  const [paymentMode, setPaymentMode] = useState<'online' | 'cash' | null>(null);
 
   const [formData, setFormData] = useState<RegistrationFormData>({
     event_price_id: 0,
@@ -69,7 +86,7 @@ const EventInscriptionPage = () => {
     pay_type: "cash",
   });
 
-  const totalSteps = 4;
+  const totalSteps = 3; // 3 étapes: Tarif, Infos, Paiement
   const progress = (step / totalSteps) * 100;
 
   // Fonction pour télécharger le billet en PDF
@@ -81,32 +98,20 @@ const EventInscriptionPage = () => {
     }
 
     try {
-      // Attendre un peu pour s'assurer que tout est rendu
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Attendre que tout soit bien rendu
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(ticketElement, {
-        scale: 3, // Augmenté pour meilleure qualité
+        scale: 2,
         backgroundColor: '#ffffff',
-        logging: true, // Activé pour debug
+        logging: false,
         useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: true,
-        windowWidth: ticketElement.scrollWidth,
-        windowHeight: ticketElement.scrollHeight,
+        allowTaint: false,
+        imageTimeout: 0,
+        removeContainer: true,
       });
 
-      // Vérifier que le canvas n'est pas vide
-      if (canvas.width === 0 || canvas.height === 0) {
-        throw new Error('Le canvas généré est vide');
-      }
-
       const imgData = canvas.toDataURL('image/png');
-      
-      // Vérifier que l'image n'est pas vide
-      if (!imgData || imgData === 'data:,') {
-        throw new Error('Image générée vide');
-      }
-
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -122,13 +127,38 @@ const EventInscriptionPage = () => {
       pdf.save(`billet-${ticketData?.reference || 'ticket'}.pdf`);
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
-      alert(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}. Veuillez réessayer.`);
+      alert('Erreur lors de la génération du PDF. Veuillez utiliser l\'impression à la place.');
     }
   };
 
-  // Fonction pour imprimer le billet
-  const printTicket = () => {
-    window.print();
+  // Fonction pour imprimer le billet (capture d'écran)
+  const printTicket = async () => {
+    const ticketElement = document.getElementById('ticket-to-download');
+    if (!ticketElement) {
+      alert('Élément du billet introuvable.');
+      return;
+    }
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const canvas = await html2canvas(ticketElement, {
+        scale: 3, // Haute qualité pour l'impression
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+      });
+
+      // Télécharger directement l'image
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `billet-${ticketData?.reference || 'ticket'}.png`;
+      link.href = imgData;
+      link.click();
+    } catch (error) {
+      console.error('Erreur lors de la capture:', error);
+      alert('Erreur lors de la génération de l\'image.');
+    }
   };
 
   // Charger l'événement
@@ -188,6 +218,7 @@ const EventInscriptionPage = () => {
 
   const validateStep1 = () => formData.event_price_id > 0 && selectedPrice;
   const validateStep2 = () => formData.full_name && formData.email && formData.phone;
+  const validateStep3 = () => !!formData.pay_type;
 
   const handleNextStep = () => {
     if (step === 1 && validateStep1()) {
@@ -198,6 +229,10 @@ const EventInscriptionPage = () => {
       }, 100);
     }
     else if (step === 2 && validateStep2()) setStep(3);
+    else if (step === 3 && validateStep3()) {
+      // Passer directement à la soumission
+      handleSubmit();
+    }
   };
 
   const handleSubmit = async () => {
@@ -218,11 +253,29 @@ const EventInscriptionPage = () => {
       const res = await axios.post(`${API_URL}/events/${event.id}/register`, payload);
 
       if (res.data.success) {
-        setTicketData(res.data.ticket);
-        
-        // Utiliser le qr_data retourné par l'API
-        setQrData(res.data.ticket.qr_data);
-        setStep(4);
+        if (res.data.payment_mode === 'cash') {
+          // Paiement en caisse - afficher le billet avec QR code
+          setPaymentMode('cash');
+          setTicketData(res.data.ticket);
+          
+          // Créer le QR code avec les informations essentielles pour la validation
+          const qrInfo = JSON.stringify({
+            reference: res.data.ticket.reference,
+            event_id: event.id,
+            amount: res.data.ticket.amount,
+            currency: res.data.ticket.currency,
+            payment_mode: 'cash'
+          });
+          
+          console.log('QR Data:', qrInfo); // Debug
+          setQrData(qrInfo);
+          setStep(5); // Étape 5 pour afficher le billet
+        } else if (res.data.redirect_url) {
+          // Paiement en ligne - rediriger vers MaxiCash
+          window.location.href = res.data.redirect_url;
+        } else {
+          setError(res.data.message || "Erreur lors de l'inscription");
+        }
       } else {
         setError(res.data.message || "Erreur lors de l'inscription");
       }
@@ -314,7 +367,7 @@ const EventInscriptionPage = () => {
                 />
               </div>
               <div className="flex justify-between mt-4">
-                {[1, 2, 3, 4].map((s) => (
+                {[1, 2, 3].map((s) => (
                   <motion.div
                     key={s}
                     initial={{ scale: 0 }}
@@ -334,8 +387,7 @@ const EventInscriptionPage = () => {
                     <span className="text-[10px] md:text-xs mt-2 text-center font-medium hidden sm:block">
                       {s === 1 && "Tarif"}
                       {s === 2 && "Infos"}
-                      {s === 3 && "Confirmation"}
-                      {s === 4 && "Paiement"}
+                      {s === 3 && "Paiement"}
                     </span>
                   </motion.div>
                 ))}
@@ -519,6 +571,28 @@ const EventInscriptionPage = () => {
                 >
                   <h2 className="text-2xl md:text-3xl font-bold mb-2">Confirmation</h2>
                   <p className="text-muted-foreground mb-6">Vérifiez vos informations avant de générer votre billet</p>
+                  
+                  {/* Alerte date limite d'inscription */}
+                  {event.registration_deadline && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3"
+                    >
+                      <Calendar className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-900 text-sm">Date limite d'inscription</p>
+                        <p className="text-amber-700 text-sm mt-1">
+                          {new Date(event.registration_deadline).toLocaleDateString('fr-FR', { 
+                            day: 'numeric', 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                  
                   <div className="grid gap-5">
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }} 
@@ -535,12 +609,18 @@ const EventInscriptionPage = () => {
                       <p className="font-semibold text-lg">{event.title}</p>
                       <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {event.date}
+                        {event.date} {event.end_date && `- ${event.end_date}`}
                       </p>
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
-                        {event.location}
+                        {event.venue_details || event.location}
                       </p>
+                      {event.organizer && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                          <User className="w-4 h-4" />
+                          Organisé par {event.organizer}
+                        </p>
+                      )}
                     </motion.div>
                     
                     <motion.div 
@@ -610,7 +690,7 @@ const EventInscriptionPage = () => {
                       <ArrowLeft className="w-4 h-4" />
                       Retour
                     </Button>
-                    <Button onClick={handleSubmit} disabled={submitting} size="lg" className="gap-2 min-w-[200px]">
+                    <Button onClick={handleNextStep} disabled={!validateStep3() || submitting} size="lg" className="gap-2 min-w-[200px]">
                       {submitting ? (
                         <>
                           <motion.div
@@ -631,8 +711,8 @@ const EventInscriptionPage = () => {
                 </motion.div>
               )}
 
-              {/* ÉTAPE 4: Billet avec Instructions de Paiement */}
-              {step === 4 && ticketData && (
+              {/* ÉTAPE 5: Billet avec Instructions de Paiement */}
+              {step === 5 && ticketData && (
                 <motion.div
                   key="step4"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -745,38 +825,58 @@ const EventInscriptionPage = () => {
                           <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
                           <div>
                             <p className="font-semibold text-gray-900 text-sm">Composez</p>
-                            <p className="text-xl md:text-2xl font-bold text-orange-600 font-mono">#144#</p>
+                            <p className="text-xl md:text-2xl font-bold text-orange-600 font-mono">*144#</p>
                           </div>
                         </div>
 
                         <div className="flex items-start gap-3">
                           <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">Sélectionnez</p>
-                            <p className="text-base font-semibold text-gray-800">Paiement marchand</p>
+                            <p className="font-semibold text-gray-900 text-sm">Choisir</p>
+                            <p className="text-base font-semibold text-gray-800">2 et valider</p>
                           </div>
                         </div>
 
                         <div className="flex items-start gap-3">
                           <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">Entrez le numéro marchand</p>
-                            <p className="text-lg md:text-xl font-bold text-orange-600 font-mono">[À VENIR]</p>
+                            <p className="font-semibold text-gray-900 text-sm">Choisir</p>
+                            <p className="text-base font-semibold text-gray-800">1 et valider</p>
                           </div>
                         </div>
 
                         <div className="flex items-start gap-3">
                           <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">4</div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">Entrez le montant</p>
-                            <p className="text-2xl md:text-3xl font-bold text-orange-600">{ticketData.amount} {ticketData.currency}</p>
+                            <p className="font-semibold text-gray-900 text-sm">Saisir numéro du bénéficiaire</p>
+                            <p className="text-base md:text-lg font-bold text-orange-600 font-mono">
+                              {event.contact_phone || '+243 844 338 747'}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">{event.organizer || 'Never Limit Children'}</p>
                           </div>
                         </div>
 
                         <div className="flex items-start gap-3">
                           <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">5</div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">Validez avec votre PIN</p>
+                            <p className="font-semibold text-gray-900 text-sm">Saisir le montant du transfert</p>
+                            <p className="text-2xl md:text-3xl font-bold text-orange-600">{ticketData.amount} {ticketData.currency}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">6</div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">Saisir le code PIN</p>
+                            <p className="text-sm text-gray-600">(mot de passe)</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">7</div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">Confirmer la transaction</p>
+                            <p className="text-sm text-gray-600">SMS de notification à confirmer</p>
                           </div>
                         </div>
                       </div>
@@ -793,87 +893,308 @@ const EventInscriptionPage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl mx-auto"
+                    style={{ 
+                      width: '700px', 
+                      maxWidth: '100%',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                      margin: '48px auto 0 auto',
+                      border: '2px solid #e5e7eb'
+                    }}
                   >
-                    <div className="relative h-32 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 flex flex-col items-center justify-center">
-                      <Ticket className="w-16 h-16 text-white relative z-10 mb-2" strokeWidth={1.5} />
-                      <div className="bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full">
-                        <p className="text-white font-mono font-bold text-sm">Réf: {ticketData.reference}</p>
+                    {/* En-tête simplifié */}
+                    <div style={{ 
+                      position: 'relative',
+                      height: '128px',
+                      backgroundColor: '#2563eb',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Ticket style={{ 
+                        width: '64px', 
+                        height: '64px', 
+                        color: '#ffffff',
+                        position: 'relative',
+                        zIndex: 10,
+                        marginBottom: '8px'
+                      }} strokeWidth={1.5} />
+                      <div style={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        padding: '4px 16px',
+                        borderRadius: '9999px'
+                      }}>
+                        <p style={{ 
+                          color: '#ffffff',
+                          fontFamily: 'monospace',
+                          fontWeight: 'bold',
+                          fontSize: '14px'
+                        }}>Réf: {ticketData.reference}</p>
                       </div>
                     </div>
 
-                    <div className="p-6">
-                      <div className="mb-6 text-center">
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">{event.title}</h3>
-                        <p className="text-sm text-gray-600">{event.date} • {event.location}</p>
+                    <div style={{ padding: '24px' }}>
+                      <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                        <h3 style={{ 
+                          fontSize: '20px',
+                          fontWeight: 'bold',
+                          color: '#111827',
+                          marginBottom: '4px'
+                        }}>{event.title}</h3>
+                        <p style={{ 
+                          fontSize: '14px',
+                          color: '#4b5563'
+                        }}>
+                          {event.date} {event.end_date && `- ${event.end_date}`} • {event.venue_details || event.location}
+                        </p>
+                        {event.time && event.end_time && (
+                          <p style={{ 
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            marginTop: '4px'
+                          }}>
+                            {event.time} - {event.end_time}
+                          </p>
+                        )}
+                        {event.organizer && (
+                          <p style={{ 
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            marginTop: '4px'
+                          }}>
+                            Organisé par {event.organizer}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <User className="w-4 h-4 text-blue-600" />
+                      {/* Informations en 2 colonnes - layout fixe */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '16px', 
+                        marginBottom: '24px' 
+                      }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ 
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#eff6ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <User style={{ width: '16px', height: '16px', color: '#2563eb' }} />
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold">Participant</p>
-                              <p className="text-sm font-medium text-gray-900">{ticketData.full_name}</p>
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                fontWeight: '600'
+                              }}>Participant</p>
+                              <p style={{ 
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                color: '#111827'
+                              }}>{ticketData.full_name}</p>
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <Mail className="w-4 h-4 text-blue-600" />
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ 
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#eff6ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <Mail style={{ width: '16px', height: '16px', color: '#2563eb' }} />
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold">Email</p>
-                              <p className="text-xs font-medium text-gray-900 break-all">{ticketData.email}</p>
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                fontWeight: '600'
+                              }}>Email</p>
+                              <p style={{ 
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                color: '#111827',
+                                wordBreak: 'break-all'
+                              }}>{ticketData.email}</p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <Phone className="w-4 h-4 text-blue-600" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ 
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#eff6ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <Phone style={{ width: '16px', height: '16px', color: '#2563eb' }} />
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold">Téléphone</p>
-                              <p className="text-sm font-medium text-gray-900">{ticketData.phone}</p>
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                fontWeight: '600'
+                              }}>Téléphone</p>
+                              <p style={{ 
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                color: '#111827'
+                              }}>{ticketData.phone}</p>
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <Ticket className="w-4 h-4 text-blue-600" />
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ 
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#eff6ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <Ticket style={{ width: '16px', height: '16px', color: '#2563eb' }} />
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold">Catégorie</p>
-                              <p className="text-sm font-medium text-gray-900">{ticketData.category}</p>
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                fontWeight: '600'
+                              }}>Catégorie</p>
+                              <p style={{ 
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                color: '#111827'
+                              }}>{ticketData.category}</p>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex justify-center mb-6">
-                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-xl border-2 border-gray-200">
-                          <QRCodeSVG 
-                            value={qrData || ''} 
-                            size={150}
-                            level="H"
-                            className="mx-auto"
-                          />
-                          <p className="text-xs text-center text-gray-600 mt-2 font-medium">Présentez ce code pour valider votre billet</p>
+                      {/* QR Code centré avec position fixe */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        marginBottom: '24px',
+                        width: '100%'
+                      }}>
+                        <div style={{ 
+                          backgroundColor: '#f9fafb',
+                          padding: '16px',
+                          borderRadius: '12px',
+                          border: '2px solid #e5e7eb',
+                          display: 'inline-block'
+                        }}>
+                          <div style={{ 
+                            width: '150px',
+                            height: '150px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <QRCodeSVG 
+                              value={qrData || ''} 
+                              size={150}
+                              level="H"
+                              style={{ display: 'block' }}
+                            />
+                          </div>
+                          <p style={{ 
+                            fontSize: '12px',
+                            textAlign: 'center',
+                            color: '#4b5563',
+                            marginTop: '8px',
+                            fontWeight: '500',
+                            maxWidth: '150px'
+                          }}>Présentez ce code pour valider votre billet</p>
                         </div>
                       </div>
 
-                      <div className="border-t-2 border-dashed border-gray-300 pt-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-base font-semibold text-gray-900">Montant à payer</span>
-                          <span className="text-2xl font-bold text-blue-600">
+                      {/* Montant */}
+                      <div style={{ 
+                        borderTop: '2px dashed #d1d5db',
+                        paddingTop: '16px',
+                        marginBottom: '16px'
+                      }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center' 
+                        }}>
+                          <span style={{ 
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: '#111827'
+                          }}>Montant à payer</span>
+                          <span style={{ 
+                            fontSize: '24px',
+                            fontWeight: 'bold',
+                            color: '#2563eb'
+                          }}>
                             {ticketData.amount} {ticketData.currency}
                           </span>
                         </div>
                       </div>
+
+                      {/* Informations de contact */}
+                      {(event.contact_phone || event.contact_email) && (
+                        <div style={{ 
+                          backgroundColor: '#f9fafb',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          <p style={{ 
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            color: '#6b7280',
+                            textTransform: 'uppercase',
+                            marginBottom: '8px'
+                          }}>Contact organisateur</p>
+                          <div style={{ 
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                          }}>
+                            {event.contact_phone && (
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#111827'
+                              }}>📞 {event.contact_phone}</p>
+                            )}
+                            {event.contact_email && (
+                              <p style={{ 
+                                fontSize: '12px',
+                                color: '#111827'
+                              }}>✉️ {event.contact_email}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 
@@ -890,8 +1211,8 @@ const EventInscriptionPage = () => {
                       size="lg"
                       className="gap-2"
                     >
-                      <Printer className="w-5 h-5" />
-                      Imprimer le billet
+                      <Download className="w-5 h-5" />
+                      Télécharger en Image (PNG)
                     </Button>
                     
                     <Button 
@@ -900,7 +1221,7 @@ const EventInscriptionPage = () => {
                       className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                     >
                       <Download className="w-5 h-5" />
-                      Télécharger le Billet
+                      Télécharger en PDF
                     </Button>
                   </motion.div>
 
