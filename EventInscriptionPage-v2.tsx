@@ -75,16 +75,38 @@ const EventInscriptionPage = () => {
   // Fonction pour télécharger le billet en PDF
   const downloadTicketPDF = async () => {
     const ticketElement = document.getElementById('ticket-to-download');
-    if (!ticketElement) return;
+    if (!ticketElement) {
+      alert('Élément du billet introuvable. Veuillez réessayer.');
+      return;
+    }
 
     try {
+      // Attendre un peu pour s'assurer que tout est rendu
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const canvas = await html2canvas(ticketElement, {
-        scale: 2,
+        scale: 3, // Augmenté pour meilleure qualité
         backgroundColor: '#ffffff',
-        logging: false,
+        logging: true, // Activé pour debug
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        windowWidth: ticketElement.scrollWidth,
+        windowHeight: ticketElement.scrollHeight,
       });
 
+      // Vérifier que le canvas n'est pas vide
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Le canvas généré est vide');
+      }
+
       const imgData = canvas.toDataURL('image/png');
+      
+      // Vérifier que l'image n'est pas vide
+      if (!imgData || imgData === 'data:,') {
+        throw new Error('Image générée vide');
+      }
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -100,6 +122,7 @@ const EventInscriptionPage = () => {
       pdf.save(`billet-${ticketData?.reference || 'ticket'}.pdf`);
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
+      alert(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}. Veuillez réessayer.`);
     }
   };
 
@@ -197,19 +220,8 @@ const EventInscriptionPage = () => {
       if (res.data.success) {
         setTicketData(res.data.ticket);
         
-        const qrInfo = JSON.stringify({
-          reference: res.data.ticket.reference,
-          event: event.title,
-          participant: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          amount: res.data.ticket.amount,
-          currency: res.data.ticket.currency,
-          category: res.data.ticket.category,
-          date: event.date,
-          location: event.location,
-        });
-        setQrData(qrInfo);
+        // Utiliser le qr_data retourné par l'API
+        setQrData(res.data.ticket.qr_data);
         setStep(4);
       } else {
         setError(res.data.message || "Erreur lors de l'inscription");

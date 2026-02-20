@@ -42,6 +42,9 @@ Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name(
 // Routes Admin Dashboard (Vue Blade)
 Route::get('/admin', [DashboardController::class, 'view'])->name('admin.dashboard.view');
 Route::post('/admin/tickets/{reference}/validate', [DashboardController::class, 'validateTicketWeb'])->name('admin.tickets.validate.web');
+Route::post('/admin/agents/create', [DashboardController::class, 'createAgent'])->name('admin.agents.create');
+Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
+Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
 
 // Routes Admin Dashboard (API JSON)
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only'])->group(function () {

@@ -14,6 +14,8 @@ import {
   Search,
   Filter,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,9 @@ interface DashboardStats {
   total_events: number;
   active_events: number;
   total_users: number;
+  total_ticket_scans: number; // Scans de billets
+  total_event_scans: number; // Scans d'événements
+  tickets_scanned: number;
 }
 
 interface TicketItem {
@@ -40,10 +45,21 @@ interface TicketItem {
   amount: number;
   currency: string;
   payment_status: string;
+  pay_type: string;
   created_at: string;
   event: {
+    id: number;
     title: string;
   };
+}
+
+interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number;
+  to: number;
 }
 
 interface EventStats {
@@ -68,6 +84,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentTickets, setRecentTickets] = useState<TicketItem[]>([]);
   const [allTickets, setAllTickets] = useState<TicketItem[]>([]);
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
   const [events, setEvents] = useState<EventStats[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +92,10 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPayType, setFilterPayType] = useState("all");
+  const [filterEventId, setFilterEventId] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
   useEffect(() => {
     checkAuth();
@@ -89,7 +110,7 @@ const AdminDashboard = () => {
     } else if (activeTab === "users") {
       fetchUsers();
     }
-  }, [activeTab]);
+  }, [activeTab, currentPage, searchTerm, filterStatus, filterPayType, filterEventId, perPage]);
 
   const checkAuth = () => {
     const token = localStorage.getItem("auth_token");
@@ -101,7 +122,7 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      await axios.post(`${API_URL.replace('/api', '')}/logout`, {}, {
+      await axios.post(`${API_URL}/logout`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (error) {
@@ -115,7 +136,7 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await axios.get(`${API_URL.replace('/api', '')}/admin/dashboard`, {
+      const response = await axios.get(`${API_URL}/admin/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -134,10 +155,34 @@ const AdminDashboard = () => {
   const fetchPendingTickets = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await axios.get(`${API_URL.replace('/api', '')}/admin/tickets/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
+      
+      // Construire les paramètres de requête
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        per_page: perPage.toString(),
       });
+
+      if (searchTerm) params.append('search', searchTerm);
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterPayType !== 'all') params.append('pay_type', filterPayType);
+      if (filterEventId !== 'all') params.append('event_id', filterEventId);
+
+      const response = await axios.get(
+        `${API_URL}/admin/dashboard/pending-tickets?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
       setAllTickets(response.data.data || []);
+      setPaginationMeta({
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        per_page: response.data.per_page,
+        total: response.data.total,
+        from: response.data.from,
+        to: response.data.to,
+      });
     } catch (error) {
       console.error("Erreur:", error);
     }
@@ -146,7 +191,7 @@ const AdminDashboard = () => {
   const fetchEventsStats = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await axios.get(`${API_URL.replace('/api', '')}/admin/events/stats`, {
+      const response = await axios.get(`${API_URL}/admin/dashboard/events-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEvents(response.data || []);
@@ -158,7 +203,7 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await axios.get(`${API_URL.replace('/api', '')}/admin/users`, {
+      const response = await axios.get(`${API_URL}/admin/dashboard/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(response.data.data || []);
@@ -171,7 +216,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem("auth_token");
       await axios.post(
-        `${API_URL.replace('/api', '')}/admin/tickets/${reference}/validate`,
+        `${API_URL}/admin/dashboard/validate-ticket/${reference}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -189,17 +234,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const filteredTickets = allTickets.filter((ticket) => {
-    const matchesSearch =
-      ticket.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && paginationMeta && newPage <= paginationMeta.last_page) {
+      setCurrentPage(newPage);
+    }
+  };
 
-    const matchesFilter =
-      filterStatus === "all" || ticket.payment_status === filterStatus;
-
-    return matchesSearch && matchesFilter;
-  });
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("all");
+    setFilterPayType("all");
+    setFilterEventId("all");
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -347,6 +394,42 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
+              {/* Scan Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Ticket className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <span className="text-sm text-gray-500">Billets</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900">{stats?.total_ticket_scans || 0}</h3>
+                  <p className="text-sm text-gray-600 mt-1">Scans de billets (entrées)</p>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-cyan-600" />
+                    </div>
+                    <span className="text-sm text-gray-500">Événements</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900">{stats?.total_event_scans || 0}</h3>
+                  <p className="text-sm text-gray-600 mt-1">Scans d'événements (pages vues)</p>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <span className="text-sm text-gray-500">Validés</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900">{stats?.tickets_scanned || 0}</h3>
+                  <p className="text-sm text-gray-600 mt-1">Billets uniques scannés</p>
+                </div>
+              </div>
+
               {/* Recent Tickets */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
@@ -440,42 +523,175 @@ const AdminDashboard = () => {
             <>
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900">Gestion des Tickets</h2>
-                <p className="text-gray-600 mt-1">Liste complète des tickets en attente</p>
+                <p className="text-gray-600 mt-1">
+                  {paginationMeta ? `${paginationMeta.total} ticket(s) au total` : 'Liste complète des tickets'}
+                </p>
               </div>
 
               {/* Filters */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="space-y-4">
+                  {/* Recherche */}
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
                         type="text"
-                        placeholder="Rechercher par référence, nom, email..."
+                        placeholder="Rechercher par référence, nom, email, téléphone..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
                         className="pl-10"
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Filtres */}
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Filtre par statut */}
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Statut de paiement
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={filterStatus === "all" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterStatus("all");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Tous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterStatus === "pending_cash" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterStatus("pending_cash");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          En attente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterStatus === "completed" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterStatus("completed");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Validés
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterStatus === "failed" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterStatus("failed");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Échoués
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Filtre par mode de paiement */}
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mode de paiement
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={filterPayType === "all" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterPayType("all");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Tous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterPayType === "cash" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterPayType("cash");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Caisse
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterPayType === "maxicash" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterPayType("maxicash");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          MaxiCash
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterPayType === "mpesa" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterPayType("mpesa");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          M-Pesa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterPayType === "orange_money" ? "default" : "outline"}
+                          onClick={() => {
+                            setFilterPayType("orange_money");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          Orange Money
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filtre par événement */}
+                  {events.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Événement
+                      </label>
+                      <select
+                        value={filterEventId}
+                        onChange={(e) => {
+                          setFilterEventId(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="all">Tous les événements</option>
+                        {events.map((event) => (
+                          <option key={event.id} value={event.id}>
+                            {event.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Bouton réinitialiser */}
+                  <div className="flex justify-end">
                     <Button
-                      variant={filterStatus === "all" ? "default" : "outline"}
-                      onClick={() => setFilterStatus("all")}
+                      variant="outline"
+                      onClick={handleResetFilters}
+                      className="gap-2"
                     >
-                      Tous
-                    </Button>
-                    <Button
-                      variant={filterStatus === "pending_cash" ? "default" : "outline"}
-                      onClick={() => setFilterStatus("pending_cash")}
-                    >
-                      En attente
-                    </Button>
-                    <Button
-                      variant={filterStatus === "completed" ? "default" : "outline"}
-                      onClick={() => setFilterStatus("completed")}
-                    >
-                      Validés
+                      <X className="w-4 h-4" />
+                      Réinitialiser les filtres
                     </Button>
                   </div>
                 </div>
@@ -500,6 +716,9 @@ const AdminDashboard = () => {
                           Événement
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Mode
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                           Montant
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -511,7 +730,7 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {filteredTickets.map((ticket) => (
+                      {allTickets.map((ticket) => (
                         <tr key={ticket.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="font-mono text-sm font-medium text-gray-900">
@@ -527,6 +746,15 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4">
                             <span className="text-sm text-gray-900">{ticket.event.title}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                              {ticket.pay_type === 'cash' ? 'Caisse' : 
+                               ticket.pay_type === 'maxicash' ? 'MaxiCash' :
+                               ticket.pay_type === 'mpesa' ? 'M-Pesa' :
+                               ticket.pay_type === 'orange_money' ? 'Orange Money' :
+                               ticket.pay_type}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm font-medium text-gray-900">
@@ -565,12 +793,69 @@ const AdminDashboard = () => {
                       ))}
                     </tbody>
                   </table>
-                  {filteredTickets.length === 0 && (
+                  {allTickets.length === 0 && (
                     <div className="text-center py-12">
                       <p className="text-gray-500">Aucun ticket trouvé</p>
                     </div>
                   )}
                 </div>
+
+                {/* Pagination */}
+                {paginationMeta && paginationMeta.last_page > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Affichage de {paginationMeta.from} à {paginationMeta.to} sur {paginationMeta.total} résultats
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Précédent
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, paginationMeta.last_page) }, (_, i) => {
+                          let pageNum;
+                          if (paginationMeta.last_page <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= paginationMeta.last_page - 2) {
+                            pageNum = paginationMeta.last_page - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="w-10"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === paginationMeta.last_page}
+                      >
+                        Suivant
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

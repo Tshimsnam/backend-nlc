@@ -14,6 +14,8 @@ class Ticket extends Model
     protected $fillable = [
         'event_id',
         'event_price_id',
+        'participant_id',
+        'physical_qr_id',
         'full_name',
         'email',
         'phone',
@@ -26,6 +28,7 @@ class Ticket extends Model
         'pay_sub_type',
         'payment_status',
         'gateway_log_id',
+        'qr_data',
         'scan_count',
         'first_scanned_at',
         'last_scanned_at',
@@ -47,6 +50,11 @@ class Ticket extends Model
     public function price(): BelongsTo
     {
         return $this->belongsTo(EventPrice::class, 'event_price_id');
+    }
+
+    public function participant(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class);
     }
 
     /**
