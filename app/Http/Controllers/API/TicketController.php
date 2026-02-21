@@ -11,6 +11,8 @@ use App\Services\Payments\PaymentGatewayFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\TicketNotificationMail;
 
 class TicketController extends Controller
 {
@@ -230,5 +232,43 @@ class TicketController extends Controller
             'count' => $tickets->count(),
             'tickets' => $tickets,
         ]);
+    }
+
+    /**
+     * Envoyer une notification par email pour un ticket.
+     */
+    public function sendNotification(string $ticketNumber): JsonResponse
+    {
+        try {
+            $ticket = Ticket::with(['event', 'price'])
+                ->where('reference', $ticketNumber)
+                ->firstOrFail();
+
+            // Vérifier que le ticket a un email
+            if (empty($ticket->email)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce ticket n\'a pas d\'adresse email associée.',
+                ], 400);
+            }
+
+            // Envoyer l'email
+            Mail::to($ticket->email)->send(new TicketNotificationMail($ticket));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification envoyée avec succès à ' . $ticket->email,
+                'ticket' => [
+                    'reference' => $ticket->reference,
+                    'full_name' => $ticket->full_name,
+                    'email' => $ticket->email,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'envoi de la notification : ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

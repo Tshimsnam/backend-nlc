@@ -66,6 +66,9 @@ Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 // --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
 
+// --- Envoyer une notification par email pour un ticket
+Route::post('/tickets/{ticketNumber}/send-notification', [TicketController::class, 'sendNotification']);
+
 // --- Scan de billets (QR Code) - Accessible à tous les utilisateurs connectés
 // Scanner un billet (via QR code, référence ou téléphone)
 Route::post('/tickets/scan', [QRScanController::class, 'scan'])->middleware('auth:sanctum');
