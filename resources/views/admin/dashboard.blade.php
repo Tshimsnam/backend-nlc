@@ -403,7 +403,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Participant</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Événement</th>
+                                        <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Événement</th> -->
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -465,9 +465,9 @@
                                                 <div class="text-sm text-gray-500">{{ $ticket->email }}</div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <!-- <td class="px-6 py-4">
                                             <span class="text-sm text-gray-900">{{ $ticket->event->title }}</span>
-                                        </td>
+                                        </td> -->
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="text-sm font-medium text-gray-900">{{ $ticket->amount }} {{ $ticket->currency }}</span>
                                         </td>
@@ -652,7 +652,6 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Participant</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
@@ -676,33 +675,6 @@
                                                     </span>
                                                 @endif
                                             </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @if($ticket->physical_qr_id)
-                                                <div class="flex items-center gap-2">
-                                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                                                        </svg>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-purple-900">Physique</div>
-                                                        <div class="text-xs text-purple-600">QR: {{ substr($ticket->physical_qr_id, 0, 6) }}...</div>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <div class="flex items-center gap-2">
-                                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                                        </svg>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-blue-900">En ligne</div>
-                                                        <div class="text-xs text-blue-600">Site web</div>
-                                                    </div>
-                                                </div>
-                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="text-sm font-medium text-gray-900">{{ $ticket->full_name }}</span>
