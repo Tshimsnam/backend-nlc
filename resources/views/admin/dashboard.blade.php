@@ -190,6 +190,84 @@
                         </div>
                     </div>
 
+                    <!-- Statistiques par type de billet -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Ventes par canal</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Billets Physiques -->
+                            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-sm border-2 border-purple-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-200 text-purple-800">
+                                        QR Physique
+                                    </span>
+                                </div>
+                                <h4 class="text-sm font-medium text-purple-700 mb-2">Billets Physiques</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-xs text-purple-600 mb-1">Total créés</p>
+                                        <p class="text-3xl font-bold text-purple-900">{{ $stats['physical_tickets'] }}</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-purple-200">
+                                        <div>
+                                            <p class="text-xs text-purple-600 mb-1">Validés</p>
+                                            <p class="text-xl font-bold text-purple-900">{{ $stats['physical_tickets_completed'] }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-purple-600 mb-1">Revenus</p>
+                                            <p class="text-xl font-bold text-purple-900">{{ number_format($stats['physical_tickets_revenue'], 0, ',', ' ') }} $</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-purple-200">
+                                    <p class="text-xs text-purple-700">
+                                        <span class="font-semibold">{{ $stats['physical_tickets'] > 0 ? round(($stats['physical_tickets_completed'] / $stats['physical_tickets']) * 100, 1) : 0 }}%</span> de taux de validation
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Billets En Ligne -->
+                            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-sm border-2 border-blue-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-200 text-blue-800">
+                                        Site Web
+                                    </span>
+                                </div>
+                                <h4 class="text-sm font-medium text-blue-700 mb-2">Billets En Ligne</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-xs text-blue-600 mb-1">Total créés</p>
+                                        <p class="text-3xl font-bold text-blue-900">{{ $stats['online_tickets'] }}</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-blue-200">
+                                        <div>
+                                            <p class="text-xs text-blue-600 mb-1">Validés</p>
+                                            <p class="text-xl font-bold text-blue-900">{{ $stats['online_tickets_completed'] }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-blue-600 mb-1">Revenus</p>
+                                            <p class="text-xl font-bold text-blue-900">{{ number_format($stats['online_tickets_revenue'], 0, ',', ' ') }} $</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-blue-200">
+                                    <p class="text-xs text-blue-700">
+                                        <span class="font-semibold">{{ $stats['online_tickets'] > 0 ? round(($stats['online_tickets_completed'] / $stats['online_tickets']) * 100, 1) : 0 }}%</span> de taux de validation
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Deuxième ligne de stats - Scans -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <!-- Scans d'événements -->
@@ -323,6 +401,7 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Participant</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Événement</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
@@ -334,7 +413,51 @@
                                     @foreach($recentTickets as $ticket)
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="font-mono text-sm font-medium text-gray-900">{{ $ticket->reference }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono text-sm font-medium text-gray-900">{{ $ticket->reference }}</span>
+                                                @if($ticket->physical_qr_id)
+                                                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                                        </svg>
+                                                        Physique
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                        </svg>
+                                                        En ligne
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($ticket->physical_qr_id)
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
+                                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-purple-900">Billet Physique</div>
+                                                        <div class="text-xs text-purple-600">QR: {{ substr($ticket->physical_qr_id, 0, 8) }}...</div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-blue-900">Billet En Ligne</div>
+                                                        <div class="text-xs text-blue-600">Généré sur le site</div>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4">
                                             <div>
@@ -529,6 +652,7 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Participant</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
@@ -540,7 +664,45 @@
                                     @forelse($allTickets as $ticket)
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="font-mono text-sm font-medium text-gray-900">{{ $ticket->reference }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono text-sm font-medium text-gray-900">{{ $ticket->reference }}</span>
+                                                @if($ticket->physical_qr_id)
+                                                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                                                        Physique
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                                        En ligne
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($ticket->physical_qr_id)
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-purple-900">Physique</div>
+                                                        <div class="text-xs text-purple-600">QR: {{ substr($ticket->physical_qr_id, 0, 6) }}...</div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-blue-900">En ligne</div>
+                                                        <div class="text-xs text-blue-600">Site web</div>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="text-sm font-medium text-gray-900">{{ $ticket->full_name }}</span>
@@ -565,7 +727,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                             Aucun ticket trouvé
                                         </td>
                                     </tr>
@@ -747,6 +909,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date d'inscription</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
@@ -791,10 +954,18 @@
                                                 </span>
                                             @endif
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <a href="{{ route('admin.agents.details', $agent->id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition inline-flex items-center gap-2">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                                </svg>
+                                                Voir Détails
+                                            </a>
+                                        </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                             Aucun agent trouvé
                                         </td>
                                     </tr>
@@ -1231,21 +1402,34 @@
 
                                         <!-- Description -->
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Description courte</label>
                                             <textarea 
                                                 name="description" 
                                                 x-model="selectedEvent.description"
-                                                rows="3"
+                                                rows="2"
                                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="Description courte pour les listes"
                                             ></textarea>
                                         </div>
 
-                                        <!-- Date et Lieu -->
+                                        <!-- Description complète -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Description complète</label>
+                                            <textarea 
+                                                name="full_description" 
+                                                x-model="selectedEvent.full_description"
+                                                rows="4"
+                                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="Description détaillée pour la page de l'événement"
+                                            ></textarea>
+                                        </div>
+
+                                        <!-- Dates -->
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
                                                 <input 
-                                                    type="datetime-local" 
+                                                    type="date" 
                                                     name="date" 
                                                     x-model="selectedEvent.date"
                                                     required
@@ -1254,27 +1438,130 @@
                                             </div>
 
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Lieu *</label>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Date de fin</label>
                                                 <input 
-                                                    type="text" 
-                                                    name="location" 
-                                                    x-model="selectedEvent.location"
-                                                    required
+                                                    type="date" 
+                                                    name="end_date" 
+                                                    x-model="selectedEvent.end_date"
                                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 />
                                             </div>
                                         </div>
 
-                                        <!-- Max Participants -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre maximum de participants</label>
-                                            <input 
-                                                type="number" 
-                                                name="max_participants" 
-                                                x-model="selectedEvent.capacity"
-                                                min="1"
-                                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            />
+                                        <!-- Horaires -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Heure de début</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="time" 
+                                                    x-model="selectedEvent.time"
+                                                    placeholder="Ex: 08h00"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Heure de fin</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="end_time" 
+                                                    x-model="selectedEvent.end_time"
+                                                    placeholder="Ex: 16h00"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- Lieu -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Ville/Localité *</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="location" 
+                                                    x-model="selectedEvent.location"
+                                                    required
+                                                    placeholder="Ex: Kinshasa"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Lieu détaillé</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="venue_details" 
+                                                    x-model="selectedEvent.venue_details"
+                                                    placeholder="Ex: Fleuve Congo Hôtel Kinshasa"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- Capacité et Date limite -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre maximum de participants</label>
+                                                <input 
+                                                    type="number" 
+                                                    name="max_participants" 
+                                                    x-model="selectedEvent.capacity"
+                                                    min="1"
+                                                    placeholder="Ex: 200"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Date limite d'inscription</label>
+                                                <input 
+                                                    type="date" 
+                                                    name="registration_deadline" 
+                                                    x-model="selectedEvent.registration_deadline"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Informations de contact -->
+                                    <div class="bg-green-50 p-4 rounded-lg space-y-4">
+                                        <h4 class="font-semibold text-gray-900">Informations de contact</h4>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Organisateur</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="organizer" 
+                                                    x-model="selectedEvent.organizer"
+                                                    placeholder="Ex: Never Limit Children"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Téléphone de contact</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="contact_phone" 
+                                                    x-model="selectedEvent.contact_phone"
+                                                    placeholder="Ex: +243 844 338 747"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Email de contact</label>
+                                                <input 
+                                                    type="email" 
+                                                    name="contact_email" 
+                                                    x-model="selectedEvent.contact_email"
+                                                    placeholder="Ex: info@nlcrdc.org"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 

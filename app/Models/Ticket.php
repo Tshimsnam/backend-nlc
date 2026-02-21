@@ -27,6 +27,7 @@ class Ticket extends Model
         'pay_type',
         'pay_sub_type',
         'payment_status',
+        'validated_by',
         'gateway_log_id',
         'qr_data',
         'scan_count',
@@ -63,5 +64,13 @@ class Ticket extends Model
     public function scans(): HasMany
     {
         return $this->hasMany(TicketScan::class);
+    }
+
+    /**
+     * Relation avec l'utilisateur qui a validé le billet
+     */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 }

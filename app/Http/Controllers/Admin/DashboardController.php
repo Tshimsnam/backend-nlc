@@ -38,6 +38,15 @@ class DashboardController extends Controller
             'total_ticket_scans' => TicketScan::count(), // Scans de billets (validation entrée)
             'total_event_scans' => EventScan::count(), // Scans d'événements (consultation page)
             'tickets_scanned' => Ticket::where('scan_count', '>', 0)->count(),
+            
+            // Statistiques par type de billet
+            'physical_tickets' => Ticket::whereNotNull('physical_qr_id')->count(),
+            'physical_tickets_completed' => Ticket::whereNotNull('physical_qr_id')->where('payment_status', 'completed')->count(),
+            'physical_tickets_revenue' => Ticket::whereNotNull('physical_qr_id')->where('payment_status', 'completed')->sum('amount'),
+            
+            'online_tickets' => Ticket::whereNull('physical_qr_id')->count(),
+            'online_tickets_completed' => Ticket::whereNull('physical_qr_id')->where('payment_status', 'completed')->count(),
+            'online_tickets_revenue' => Ticket::whereNull('physical_qr_id')->where('payment_status', 'completed')->sum('amount'),
         ];
 
         // Tickets récents avec filtres et pagination
@@ -280,7 +289,10 @@ class DashboardController extends Controller
                 ->with('error', 'Ce ticket n\'est pas en attente de validation.');
         }
 
-        $ticket->update(['payment_status' => 'completed']);
+        $ticket->update([
+            'payment_status' => 'completed',
+            'validated_by' => $user->id
+        ]);
 
         return redirect()->route('admin.dashboard.view')
             ->with('success', 'Ticket validé avec succès!');
@@ -510,6 +522,105 @@ class DashboardController extends Controller
 
         return redirect()->route('admin.dashboard.view', ['tab' => 'events'])
             ->with('success', 'Événement mis à jour avec succès!');
+    }
+
+    /**
+     * Afficher les détails d'un agent avec ses statistiques
+     */
+    public function agentDetails($id)
+    {
+        $user = session('admin_user');
+        
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // Récupérer l'agent avec ses rôles
+        $agent = User::with('roles')->findOrFail($id);
+
+        // Vérifier que ce n'est pas un Parent ou Administrateur
+        $hasRestrictedRole = $agent->roles()->whereIn('name', ['Parent', 'Administrateur'])->exists();
+        if ($hasRestrictedRole) {
+            return redirect()->route('admin.dashboard.view', ['tab' => 'agents'])
+                ->with('error', 'Impossible d\'afficher les détails de cet utilisateur.');
+        }
+
+        // Statistiques globales de l'agent
+        $stats = [
+            // Total de billets validés par cet agent
+            'total_validations' => Ticket::where('validated_by', $agent->id)->count(),
+            
+            // Billets physiques validés
+            'physical_validations' => Ticket::where('validated_by', $agent->id)
+                ->whereNotNull('physical_qr_id')
+                ->count(),
+            
+            // Billets en ligne validés
+            'online_validations' => Ticket::where('validated_by', $agent->id)
+                ->whereNull('physical_qr_id')
+                ->count(),
+            
+            // Revenus générés (billets validés)
+            'total_revenue' => Ticket::where('validated_by', $agent->id)
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+            
+            // Revenus billets physiques
+            'physical_revenue' => Ticket::where('validated_by', $agent->id)
+                ->whereNotNull('physical_qr_id')
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+            
+            // Revenus billets en ligne
+            'online_revenue' => Ticket::where('validated_by', $agent->id)
+                ->whereNull('physical_qr_id')
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+        ];
+
+        // Évolution des validations par jour (30 derniers jours)
+        $validationsEvolution = Ticket::select(
+            DB::raw('DATE(updated_at) as date'),
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical'),
+            DB::raw('SUM(CASE WHEN physical_qr_id IS NULL THEN 1 ELSE 0 END) as online')
+        )
+            ->where('validated_by', $agent->id)
+            ->where('updated_at', '>=', now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Validations par événement
+        $validationsByEvent = Ticket::select(
+            'events.id',
+            'events.title',
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN tickets.physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical'),
+            DB::raw('SUM(CASE WHEN tickets.physical_qr_id IS NULL THEN 1 ELSE 0 END) as online'),
+            DB::raw('SUM(CASE WHEN tickets.payment_status = "completed" THEN tickets.amount ELSE 0 END) as revenue')
+        )
+            ->join('events', 'tickets.event_id', '=', 'events.id')
+            ->where('tickets.validated_by', $agent->id)
+            ->groupBy('events.id', 'events.title')
+            ->orderByDesc('total')
+            ->get();
+
+        // Dernières validations
+        $recentValidations = Ticket::with(['event', 'price'])
+            ->where('validated_by', $agent->id)
+            ->orderBy('updated_at', 'desc')
+            ->limit(20)
+            ->get();
+
+        return view('admin.agent-details', compact(
+            'user',
+            'agent',
+            'stats',
+            'validationsEvolution',
+            'validationsByEvent',
+            'recentValidations'
+        ));
     }
 
     /**
