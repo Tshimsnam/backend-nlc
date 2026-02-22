@@ -1,0 +1,279 @@
+═══════════════════════════════════════════════════════════════
+  RÉSUMÉ: TRACKING DES VALIDATIONS PAR AGENT
+═══════════════════════════════════════════════════════════════
+
+✅ MODIFICATIONS EFFECTUÉES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. TicketController::validateCashPayment()
+   Fichier: app/Http/Controllers/API/TicketController.php
+   
+   Avant:
+   ────────────────────────────────────────────────────────────
+   $ticket->update([
+       'payment_status' => 'completed',
+   ]);
+   
+   Après:
+   ────────────────────────────────────────────────────────────
+   $userId = $request->user() ? $request->user()->id : null;
+   
+   $ticket->update([
+       'payment_status' => 'completed',
+       'validated_by' => $userId, // ✅ Enregistre l'agent
+   ]);
+
+2. PhysicalTicketController::createFromPhysicalQR()
+   Fichier: app/Http/Controllers/API/PhysicalTicketController.php
+   
+   Avant:
+   ────────────────────────────────────────────────────────────
+   $ticket = Ticket::create([
+       // ... autres champs
+       'payment_status' => 'completed',
+   ]);
+   
+   Après:
+   ────────────────────────────────────────────────────────────
+   $userId = $request->user() ? $request->user()->id : null;
+   
+   $ticket = Ticket::create([
+       // ... autres champs
+       'payment_status' => 'completed',
+       'validated_by' => $userId, // ✅ Enregistre l'agent
+   ]);
+
+3. DashboardController::validateTicketWeb()
+   Fichier: app/Http/Controllers/Admin/DashboardController.php
+   
+   Déjà implémenté:
+   ────────────────────────────────────────────────────────────
+   $user = session('admin_user');
+   
+   $ticket->update([
+       'payment_status' => 'completed',
+       'validated_by' => $user->id // ✅ Déjà présent
+   ]);
+
+═══════════════════════════════════════════════════════════════
+  COMMENT ÇA FONCTIONNE
+═══════════════════════════════════════════════════════════════
+
+Champ: validated_by (dans la table tickets)
+Type: foreignId (référence vers users.id)
+Nullable: Oui (pour les anciens tickets)
+
+Rempli automatiquement quand:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Validation de paiement en caisse (API)
+   Route: POST /api/tickets/{reference}/validate-cash
+   Condition: Agent authentifié avec token Bearer
+   
+2. Activation de billet physique (API)
+   Route: POST /api/tickets/physical
+   Condition: Agent authentifié avec token Bearer
+   
+3. Validation depuis le dashboard web
+   Route: POST /admin/tickets/{reference}/validate
+   Condition: Admin connecté via session
+
+═══════════════════════════════════════════════════════════════
+  PAGE DE DÉTAILS DE L'AGENT
+═══════════════════════════════════════════════════════════════
+
+URL: http://localhost:8000/admin/agents/{id}/details
+
+Affiche:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Statistiques Globales
+  • Total de validations
+  • Billets physiques validés (🔲 purple)
+  • Billets en ligne validés (💻 blue)
+  • Revenus générés (total + par type)
+  • Revenu moyen par validation
+
+📈 Graphique d'Évolution (30 jours)
+  • Ligne violette: Billets physiques
+  • Ligne bleue: Billets en ligne
+  • Ligne verte: Total (pointillés)
+
+🎫 Validations par Événement
+  • Nom de l'événement
+  • Total de validations
+  • Physiques vs En ligne
+  • Revenus générés
+
+📜 Dernières Validations (20)
+  • Référence du billet
+  • Type (🔲 Physique ou 💻 En ligne)
+  • Nom du participant
+  • Événement
+  • Montant
+  • Date de validation
+
+═══════════════════════════════════════════════════════════════
+  EXEMPLE D'UTILISATION
+═══════════════════════════════════════════════════════════════
+
+Scénario: Agent valide un billet en caisse
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Agent se connecte à l'app mobile
+   POST /api/login
+   { "email": "agent@example.com", "password": "pass123" }
+   
+   Réponse: { "token": "abc...", "user": { "id": 5 } }
+
+2. Agent valide un paiement en caisse
+   POST /api/tickets/ABC123/validate-cash
+   Headers: Authorization: Bearer abc...
+   
+   Base de données:
+   ────────────────────────────────────────────────────────────
+   tickets table:
+   - reference: ABC123
+   - payment_status: completed
+   - validated_by: 5 ✅ (ID de l'agent)
+   - updated_at: 2026-02-21 14:30:00
+
+3. Admin consulte les stats de l'agent
+   URL: /admin/agents/5/details
+   
+   Affichage:
+   ────────────────────────────────────────────────────────────
+   Agent: Agent Name
+   Total validations: 1
+   Billets en ligne: 1
+   Revenus: 50.00 USD
+   
+   Graphique: Point sur le 21/02 avec 1 validation
+   
+   Dernières validations:
+   - ABC123 - John Doe - 50 USD - 21/02 14:30
+
+═══════════════════════════════════════════════════════════════
+  DIFFÉRENCE validated_by vs scanned_by
+═══════════════════════════════════════════════════════════════
+
+validated_by (table tickets)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Quand: Validation du paiement / Activation du billet
+Signification: Agent qui a validé/activé le billet
+Unicité: Un seul agent par billet
+Utilisation: Statistiques de validation par agent
+
+scanned_by (table ticket_scans)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Quand: À chaque scan du billet (entrée, contrôle)
+Signification: Agent qui a scanné le billet
+Unicité: Plusieurs scans possibles
+Utilisation: Historique des scans, contrôle d'accès
+
+═══════════════════════════════════════════════════════════════
+  AUTHENTIFICATION REQUISE
+═══════════════════════════════════════════════════════════════
+
+Pour que validated_by soit rempli, l'agent DOIT être authentifié:
+
+API Mobile:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Login: POST /api/login
+2. Récupérer le token
+3. Utiliser le token dans les requêtes:
+   Authorization: Bearer {token}
+
+Dashboard Web:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Login: POST /login
+2. Session automatique
+3. Utilisateur stocké: session('admin_user')
+
+═══════════════════════════════════════════════════════════════
+  REQUÊTES SQL UTILES
+═══════════════════════════════════════════════════════════════
+
+Voir tous les billets validés par un agent:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SELECT 
+    t.reference,
+    t.full_name,
+    t.amount,
+    CASE 
+        WHEN t.physical_qr_id IS NOT NULL THEN 'Physique'
+        ELSE 'En ligne'
+    END as type,
+    e.title as event
+FROM tickets t
+JOIN events e ON t.event_id = e.id
+WHERE t.validated_by = 5
+ORDER BY t.updated_at DESC;
+
+Statistiques par agent:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SELECT 
+    u.name,
+    COUNT(*) as total,
+    SUM(CASE WHEN t.physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical,
+    SUM(CASE WHEN t.physical_qr_id IS NULL THEN 1 ELSE 0 END) as online,
+    SUM(t.amount) as revenue
+FROM users u
+LEFT JOIN tickets t ON u.id = t.validated_by
+WHERE t.payment_status = 'completed'
+GROUP BY u.id, u.name;
+
+═══════════════════════════════════════════════════════════════
+  FICHIERS MODIFIÉS
+═══════════════════════════════════════════════════════════════
+
+✅ app/Http/Controllers/API/TicketController.php
+   Méthode: validateCashPayment()
+   Ajout: $userId = $request->user()->id
+
+✅ app/Http/Controllers/API/PhysicalTicketController.php
+   Méthode: createFromPhysicalQR()
+   Ajout: $userId = $request->user()->id
+
+✅ app/Http/Controllers/Admin/DashboardController.php
+   Méthode: validateTicketWeb()
+   Déjà présent: validated_by
+
+═══════════════════════════════════════════════════════════════
+  DOCUMENTATION CRÉÉE
+═══════════════════════════════════════════════════════════════
+
+📄 TRACKING_AGENTS_VALIDATIONS.md
+   • Explication complète du système
+   • Exemples de code
+   • Requêtes SQL
+   • Scénarios d'utilisation
+
+📄 RESUME_TRACKING_AGENTS.txt
+   • Ce fichier (résumé rapide)
+
+═══════════════════════════════════════════════════════════════
+  PROCHAINES ÉTAPES
+═══════════════════════════════════════════════════════════════
+
+1. ✅ Champ validated_by ajouté (migration déjà faite)
+2. ✅ Tracking dans validateCashPayment()
+3. ✅ Tracking dans createFromPhysicalQR()
+4. ✅ Tracking dans validateTicketWeb()
+5. ✅ Page de détails agent fonctionnelle
+6. ✅ Séparation physique/en ligne
+7. ✅ Graphique d'évolution
+
+À FAIRE:
+  □ Tester la validation avec un agent authentifié
+  □ Vérifier que validated_by est bien rempli
+  □ Consulter la page /admin/agents/{id}/details
+  □ Vérifier les statistiques affichées
+
+═══════════════════════════════════════════════════════════════
+  SYSTÈME PRÊT! 🚀
+═══════════════════════════════════════════════════════════════
+
+Le tracking des validations par agent est maintenant complet.
+Chaque validation enregistre automatiquement l'agent qui l'a
+effectuée, permettant un suivi précis des performances.

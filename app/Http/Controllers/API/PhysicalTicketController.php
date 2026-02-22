@@ -132,6 +132,9 @@ class PhysicalTicketController extends Controller
         // Générer une référence unique
         $reference = 'TKT-' . time() . '-' . strtoupper(Str::random(6));
 
+        // Récupérer l'utilisateur connecté (agent qui active)
+        $userId = $request->user() ? $request->user()->id : null;
+
         // Créer le ticket
         $ticket = Ticket::create([
             'reference' => $reference,
@@ -147,6 +150,7 @@ class PhysicalTicketController extends Controller
             'currency' => $eventPrice->currency,
             'pay_type' => 'cash',
             'payment_status' => 'completed', // Directement validé
+            'validated_by' => $userId, // Enregistrer l'agent qui active
             'qr_data' => json_encode([
                 'reference' => $reference,
                 'event_id' => $validated['event_id'],
@@ -157,6 +161,9 @@ class PhysicalTicketController extends Controller
                 'duration_type' => $eventPrice->duration_type,
             ])
         ]);
+
+        // Incrémenter le compteur registered dans l'événement
+        Event::where('id', $validated['event_id'])->increment('registered');
 
         // Charger les relations pour la réponse
         $ticket->load(['event', 'participant', 'price']);

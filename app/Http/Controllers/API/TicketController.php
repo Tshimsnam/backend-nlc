@@ -200,9 +200,16 @@ class TicketController extends Controller
             ], 400);
         }
 
+        // Récupérer l'utilisateur connecté (agent qui valide)
+        $userId = $request->user() ? $request->user()->id : null;
+
         $ticket->update([
             'payment_status' => 'completed',
+            'validated_by' => $userId,
         ]);
+
+        // Incrémenter le compteur registered dans l'événement
+        Event::where('id', $ticket->event_id)->increment('registered');
 
         return response()->json([
             'success' => true,
@@ -271,4 +278,40 @@ class TicketController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Rechercher des tickets par numéro de téléphone.
+     */
+    public function searchByPhone(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => 'required|string',
+        ]);
+
+        $phone = $request->input('phone');
+
+        // Rechercher tous les tickets avec ce numéro de téléphone
+        $tickets = Ticket::with(['event', 'price', 'participant'])
+            ->where('phone', $phone)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($tickets->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun ticket trouvé pour ce numéro de téléphone.',
+                'phone' => $phone,
+                'tickets' => [],
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($tickets) . ' ticket(s) trouvé(s).',
+            'phone' => $phone,
+            'count' => $tickets->count(),
+            'tickets' => $tickets,
+        ]);
+    }
+
 }

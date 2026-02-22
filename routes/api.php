@@ -63,6 +63,9 @@ Route::get('/test', function() {
 // Route::post('/register', [RegistrationController::class, 'store']);
 Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 
+// --- Recherche de tickets par téléphone
+Route::get('/tickets/search', [TicketController::class, 'searchByPhone']);
+
 // --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
 
@@ -162,6 +165,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/dashboard/events-stats', [DashboardController::class, 'eventsStats']);
         Route::get('/dashboard/scan-stats', [DashboardController::class, 'scanStats']);
     });
+
+    // Statistiques de l'agent connecté (pour l'app mobile)
+    Route::get('/my-stats', [DashboardController::class, 'myStats']);
 });
 
 

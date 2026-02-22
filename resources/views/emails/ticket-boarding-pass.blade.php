@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votre Billet - {{ $event->title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .email-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .boarding-pass {
+            background: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Header Section */
+        .pass-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            color: white;
+            position: relative;
+        }
+        .pass-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .reference-number {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .status-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-completed {
+            background: #4caf50;
+        }
+        .status-pending {
+            background: #ff9800;
+        }
+        .passenger-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .event-category {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Main Content */
+        .pass-content {
+            padding: 0;
+        }
+        
+        /* Route Section */
+        .route-section {
+            padding: 40px 30px;
+            background: #f8f9fa;
+        }
+        .route-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .location {
+            flex: 1;
+        }
+        .location-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .location-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+        .route-arrow {
+            margin: 0 20px;
+            color: #667eea;
+            font-size: 24px;
+        }
+        .date-time {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .date-time svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+
+        /* Details Grid */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 30px;
+            background: white;
+        }
+        .detail-item {
+            text-align: center;
+        }
+        .detail-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .detail-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            padding: 40px 30px;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 2px dashed #ddd;
+        }
+        .qr-code-wrapper {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .qr-code-wrapper img {
+            display: block;
+            width: 200px;
+            height: 200px;
+        }
+        .qr-instruction {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Tear-off Section */
+        .tear-off {
+            background: white;
+            padding: 30px;
+            border-top: 2px dashed #ddd;
+        }
+        .tear-off-header {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .tear-off-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tear-off-info {
+            flex: 1;
+        }
+        .tear-off-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .tear-off-details {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .tear-off-barcode {
+            text-align: center;
+        }
+        .barcode {
+            width: 120px;
+            height: 60px;
+            background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI0IiBoZWlnaHQ9IjYwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iOCIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSIxNCIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSIyMiIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSIyOCIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSIzNiIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI0MiIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI1MCIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI1NiIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI2NCIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI3MCIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI3OCIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI4NCIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI5MiIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI5OCIgeT0iMCIgd2lkdGg9IjQiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSIxMDYiIHk9IjAiIHdpZHRoPSIyIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iMTEyIiB5PSIwIiB3aWR0aD0iNCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==') center/contain no-repeat;
+        }
+
+        /* Footer */
+        .pass-footer {
+            background: #667eea;
+            padding: 20px 30px;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+        }
+        .pass-footer-note {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 8px;
+        }
+        .warning-box strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .warning-box p {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            padding: 30px;
+            background: white;
+        }
+        .contact-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .contact-info {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+        }
+        .contact-info a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="boarding-pass">
+            <!-- Header -->
+            <div class="pass-header">
+                <div class="pass-header-top">
+                    <div class="reference-number">BILLET: {{ $ticket->reference }}</div>
+                    <div class="status-badge {{ $ticket->payment_status === 'completed' ? 'status-completed' : 'status-pending' }}">
+                        {{ $ticket->payment_status === 'completed' ? '✓ PAYÉ' : '⏳ EN ATTENTE' }}
+                    </div>
+                </div>
+                <div class="passenger-name">{{ $ticket->full_name }}</div>
+                <div class="event-category">{{ $price->label ?? $ticket->category }}</div>
+            </div>
+
+            <!-- Route Section -->
+            <div class="route-section">
+                <div class="route-info">
+                    <div class="location">
+                        <div class="location-label">ÉVÉNEMENT</div>
+                        <div class="location-name">{{ $event->title }}</div>
+                    </div>
+                </div>
+                <div class="date-time">
+                    <span>📅 {{ \Carbon\Carbon::parse($event->date)->format('d/m/Y') }}</span>
+                    @if($event->time)
+                    <span>🕐 {{ $event->time }}</span>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Lieu</div>
+                    <div class="detail-value" style="font-size: 14px;">{{ $event->location }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Montant</div>
+                    <div class="detail-value">{{ number_format($ticket->amount, 0) }} {{ $ticket->currency }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Catégorie</div>
+                    <div class="detail-value" style="font-size: 14px;">{{ $ticket->category }}</div>
+                </div>
+            </div>
+
+            @if($ticket->payment_status === 'pending_cash')
+            <!-- Warning -->
+            <div class="warning-box">
+                <strong>⚠️ PAIEMENT REQUIS</strong>
+                <p>Présentez ce billet à la caisse pour finaliser votre paiement avant l'événement.</p>
+            </div>
+            @endif
+
+            <!-- QR Code -->
+            <div class="qr-section">
+                <div class="qr-code-wrapper">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($ticket->qr_data) }}" alt="QR Code">
+                </div>
+                <div class="qr-instruction">
+                    Présentez ce QR code à l'entrée
+                </div>
+            </div>
+
+            <!-- Tear-off Section -->
+            <div class="tear-off">
+                <div class="tear-off-header">DÉTAILS DU PARTICIPANT</div>
+                <div class="tear-off-content">
+                    <div class="tear-off-info">
+                        <div class="tear-off-name">{{ $ticket->full_name }}</div>
+                        <div class="tear-off-details">
+                            📧 {{ $ticket->email }}<br>
+                            📱 {{ $ticket->phone }}<br>
+                            🎫 {{ $ticket->reference }}
+                        </div>
+                    </div>
+                    <div class="tear-off-barcode">
+                        <div class="barcode"></div>
+                        <div style="font-size: 10px; margin-top: 5px; color: #999;">{{ $ticket->reference }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="contact-section">
+                <div class="contact-title">📞 Besoin d'aide ?</div>
+                <div class="contact-info">
+                    Email: <a href="mailto:{{ $event->contact_email ?? 'info@nlcrdc.org' }}">{{ $event->contact_email ?? 'info@nlcrdc.org' }}</a><br>
+                    @if($event->contact_phone)
+                    Téléphone: <a href="tel:{{ $event->contact_phone }}">{{ $event->contact_phone }}</a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pass-footer">
+                <div class="pass-footer-note">
+                    <strong>Never Limit Children (NLC)</strong><br>
+                    Ensemble pour l'inclusion<br>
+                    <br>
+                    Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

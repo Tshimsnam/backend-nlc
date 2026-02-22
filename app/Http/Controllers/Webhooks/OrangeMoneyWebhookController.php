@@ -42,6 +42,12 @@ class OrangeMoneyWebhookController extends Controller
         // Statuts Orange Money: SUCCESS, FAILED, PENDING, EXPIRED
         if (strtoupper($status) === 'SUCCESS') {
             $ticket->update(['payment_status' => 'completed']);
+            
+            // Incrémenter le compteur registered dans l'événement
+            if ($ticket->event) {
+                $ticket->event->increment('registered');
+            }
+            
             Log::info('Orange Money payment completed', ['reference' => $ticket->reference]);
         } elseif (in_array(strtoupper($status), ['FAILED', 'EXPIRED'], true)) {
             $ticket->update(['payment_status' => 'failed']);

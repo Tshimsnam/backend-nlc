@@ -36,6 +36,12 @@ class MpesaWebhookController extends Controller
         // ResultCode 0 = succès
         if ($resultCode === 0 || $resultCode === '0') {
             $ticket->update(['payment_status' => 'completed']);
+            
+            // Incrémenter le compteur registered dans l'événement
+            if ($ticket->event) {
+                $ticket->event->increment('registered');
+            }
+            
             Log::info('M-Pesa payment completed', ['reference' => $ticket->reference]);
         } else {
             $ticket->update(['payment_status' => 'failed']);

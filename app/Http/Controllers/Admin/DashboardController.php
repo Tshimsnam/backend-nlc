@@ -641,5 +641,101 @@ class DashboardController extends Controller
         return redirect()->route('admin.dashboard.view', ['tab' => 'events'])
             ->with('success', 'Tarif supprimé avec succès!');
     }
+
+    /**
+     * Statistiques de l'agent connecté (API pour mobile)
+     */
+    public function myStats(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non authentifié',
+            ], 401);
+        }
+
+        // Statistiques globales de l'agent
+        $stats = [
+            'total_validations' => Ticket::where('validated_by', $user->id)->count(),
+            'physical_validations' => Ticket::where('validated_by', $user->id)
+                ->whereNotNull('physical_qr_id')
+                ->count(),
+            'online_validations' => Ticket::where('validated_by', $user->id)
+                ->whereNull('physical_qr_id')
+                ->count(),
+            'total_revenue' => Ticket::where('validated_by', $user->id)
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+            'physical_revenue' => Ticket::where('validated_by', $user->id)
+                ->whereNotNull('physical_qr_id')
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+            'online_revenue' => Ticket::where('validated_by', $user->id)
+                ->whereNull('physical_qr_id')
+                ->where('payment_status', 'completed')
+                ->sum('amount'),
+        ];
+
+        // Évolution des validations par jour (30 derniers jours)
+        $validationsEvolution = Ticket::select(
+            DB::raw('DATE(updated_at) as date'),
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical'),
+            DB::raw('SUM(CASE WHEN physical_qr_id IS NULL THEN 1 ELSE 0 END) as online')
+        )
+            ->where('validated_by', $user->id)
+            ->where('updated_at', '>=', now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Validations par événement
+        $validationsByEvent = Ticket::select(
+            'events.id',
+            'events.title',
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN tickets.physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical'),
+            DB::raw('SUM(CASE WHEN tickets.physical_qr_id IS NULL THEN 1 ELSE 0 END) as online'),
+            DB::raw('SUM(CASE WHEN tickets.payment_status = "completed" THEN tickets.amount ELSE 0 END) as revenue')
+        )
+            ->join('events', 'tickets.event_id', '=', 'events.id')
+            ->where('tickets.validated_by', $user->id)
+            ->groupBy('events.id', 'events.title')
+            ->orderByDesc('total')
+            ->get();
+
+        // Dernières validations
+        $recentValidations = Ticket::with(['event', 'price'])
+            ->where('validated_by', $user->id)
+            ->orderBy('updated_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function ($ticket) {
+                return [
+                    'reference' => $ticket->reference,
+                    'ticket_type' => $ticket->physical_qr_id ? 'physical' : 'online',
+                    'full_name' => $ticket->full_name,
+                    'event_title' => $ticket->event->title,
+                    'amount' => $ticket->amount,
+                    'currency' => $ticket->currency,
+                    'validated_at' => $ticket->updated_at->toISOString(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'agent' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'stats' => $stats,
+            'validations_evolution' => $validationsEvolution,
+            'validations_by_event' => $validationsByEvent,
+            'recent_validations' => $recentValidations,
+        ]);
+    }
 }
 

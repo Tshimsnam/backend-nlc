@@ -27,6 +27,7 @@ class Event extends Model
         'image',
         'agenda',
         'capacity',
+        'registered',
         'contact_phone',
         'contact_email',
         'venue_details',
