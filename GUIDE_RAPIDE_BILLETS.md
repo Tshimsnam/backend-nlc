@@ -25,7 +25,7 @@ php artisan migrate
 php artisan db:seed --class=EventSeeder
 ```
 
-Cela créera l'événement "Le Grand Salon de l'Autisme" avec toutes les données.
+Cela créera l'événement "Le Grand Salon de l'Autiste" avec toutes les données.
 
 ---
 
@@ -170,7 +170,7 @@ php artisan view:clear
 
 ## 📊 Exemple de Données
 
-L'événement de test "Le Grand Salon de l'Autisme" contient:
+L'événement de test "Le Grand Salon de l'Autiste" contient:
 - Dates: 15-16 Avril 2026
 - Horaires: 08h00 - 16h00
 - Lieu: Fleuve Congo Hôtel Kinshasa

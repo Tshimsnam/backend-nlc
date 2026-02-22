@@ -54,7 +54,7 @@ http://localhost:8000/
 │         Le                              │
 │      Grand                              │
 │    Salon de                             │
-│   L'AUTISME                             │
+│   l'Autiste                             │
 │                                         │
 │  ┌───────────────────────────────────┐ │
 │  │  15 › 16 Avril 2026               │ │
@@ -154,7 +154,7 @@ Dans la section `<style>`:
 
 ### Titre Principal
 - Très grand et bold
-- "L'AUTISME" en jaune
+- "l'Autiste" en jaune
 - Animation slide-in
 
 ### Carte Date
@@ -223,7 +223,7 @@ php artisan config:clear
 ## 📊 Contenu Affiché
 
 ### Informations Principales
-- **Titre**: Le Grand Salon de l'Autisme
+- **Titre**: Le Grand Salon de l'Autiste
 - **Dates**: 15-16 Avril 2026
 - **Horaires**: 08H - 16H
 - **Lieu**: Fleuve Congo Hôtel Kinshasa

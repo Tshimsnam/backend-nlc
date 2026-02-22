@@ -90,7 +90,7 @@ interface Event {
 
 ### 4. Exemple de données affichées
 
-Avec l'événement "Le Grand Salon de l'Autisme":
+Avec l'événement "Le Grand Salon de l'Autiste":
 
 **Étape de confirmation:**
 - Date limite: 10 avril 2026
@@ -99,7 +99,7 @@ Avec l'événement "Le Grand Salon de l'Autisme":
 - Organisateur: Never Limit Children
 
 **Billet généré:**
-- Titre: Le Grand Salon de l'Autisme
+- Titre: Le Grand Salon de l'Autiste
 - Dates: 15 avril 2026 - 16 avril 2026
 - Horaires: 08h00 - 16h00
 - Lieu: Fleuve Congo Hôtel Kinshasa

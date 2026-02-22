@@ -110,7 +110,7 @@ Le composant EventDetailPage.tsx a été mis à jour pour afficher tous les nouv
 
 ### 4. Exemple d'affichage complet
 
-Pour l'événement "Le Grand Salon de l'Autisme":
+Pour l'événement "Le Grand Salon de l'Autiste":
 
 **Hero Section:**
 - Dates: 15 avril 2026 → 16 avril 2026

@@ -220,7 +220,7 @@ Response:
   "physical_qr_id": null,  // null = billet en ligne, non-null = billet physique
   "event": {
     "id": 1,
-    "title": "Le Grand Salon de l'Autisme",
+    "title": "Le Grand Salon de l'Autiste",
     "date": "2026-04-15",
     "end_date": "2026-04-16",
     "time": "08:00:00",
@@ -279,10 +279,10 @@ Response:
     "currency": "USD",
     "payment_status": "pending_cash",
     "pay_type": "cash",
-    "qr_data": "{\"reference\":\"TKT-20260218-ABC123\",\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event\":\"Le Grand Salon de l'Autisme\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
+    "qr_data": "{\"reference\":\"TKT-20260218-ABC123\",\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event\":\"Le Grand Salon de l'Autiste\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
     "event": {
       "id": 1,
-      "title": "Le Grand Salon de l'Autisme",
+      "title": "Le Grand Salon de l'Autiste",
       "date": "2026-04-15"
     },
     "price": {
@@ -319,7 +319,7 @@ Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "qr_data": "{\"reference\":\"ABC123XYZ\",\"physical_qr_id\":null,\"event\":\"Le Grand Salon de l'Autisme\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
+  "qr_data": "{\"reference\":\"ABC123XYZ\",\"physical_qr_id\":null,\"event\":\"Le Grand Salon de l'Autiste\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
   "scan_location": "Entrée principale"
 }
 
@@ -359,7 +359,7 @@ Response:
     "last_scanned_at": "2026-02-18T14:30:00.000000Z",
     "event": {
       "id": 1,
-      "title": "Le Grand Salon de l'Autisme",
+      "title": "Le Grand Salon de l'Autiste",
       "date": "2026-04-15",
       "time": "08:00:00",
       "location": "Fleuve Congo Hôtel, Kinshasa"
@@ -466,7 +466,7 @@ Response:
   "validations_by_event": [
     {
       "event_id": 1,
-      "event_title": "Le Grand Salon de l'Autisme",
+      "event_title": "Le Grand Salon de l'Autiste",
       "total": 50,
       "physical": 25,
       "online": 25,
@@ -478,7 +478,7 @@ Response:
       "reference": "ABC123XYZ",
       "ticket_type": "online",
       "full_name": "John Doe",
-      "event_title": "Le Grand Salon de l'Autisme",
+      "event_title": "Le Grand Salon de l'Autiste",
       "amount": 50.00,
       "currency": "USD",
       "validated_at": "2026-02-18T14:30:00.000000Z"
@@ -537,9 +537,9 @@ Response:
   "events": [
     {
       "id": 1,
-      "title": "Le Grand Salon de l'Autisme",
+      "title": "Le Grand Salon de l'Autiste",
       "slug": "grand-salon-autisme-2026",
-      "description": "Deux jours de conférences et ateliers sur l'autisme",
+      "description": "Deux jours de conférences et ateliers sur l'Autiste",
       "date": "2026-04-15",
       "end_date": "2026-04-16",
       "time": "08:00:00",
@@ -611,7 +611,7 @@ Response:
   "qr_codes": [
     {
       "physical_qr_id": "PHY-QR-001-ABC123",
-      "qr_data": "{\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event_id\":1,\"event\":\"Le Grand Salon de l'Autisme\"}",
+      "qr_data": "{\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event_id\":1,\"event\":\"Le Grand Salon de l'Autiste\"}",
       "status": "available"
     }
     // ... 100 QR codes
@@ -730,7 +730,7 @@ Response:
 │  📱 +243 812 345 678    │
 │                         │
 │  🎫 Le Grand Salon de   │
-│     l'Autisme           │
+│     l'Autiste           │
 │  📅 15-16 Avril 2026    │
 │  ⏰ 08H-16H             │
 │  📍 Fleuve Congo Hôtel  │
@@ -768,7 +768,7 @@ Response:
 │  Événement              │
 │  ┌───────────────────┐  │
 │  │ Le Grand Salon de │  │
-│  │ l'Autisme         │  │
+│  │ l'Autiste         │  │
 │  └───────────────────┘  │
 │                         │
 │  Tarif                  │

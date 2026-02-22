@@ -226,7 +226,7 @@ php artisan view:clear
 
 ### Événement de Test
 ```
-Titre: Le Grand Salon de l'Autisme
+Titre: Le Grand Salon de l'Autiste
 Dates: 15-16 Avril 2026
 Horaires: 08h00 - 16h00
 Lieu: Kinshasa
