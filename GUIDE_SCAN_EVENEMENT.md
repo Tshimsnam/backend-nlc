@@ -188,7 +188,7 @@ Response:
   "event": {
     "id": 1,
     "title": "Le trouble du spectre autistique",
-    "slug": "le-trouble-du-spectre-autistique-et-la-scolarite"
+    "slug": "le-grand-salon-de-lautisme"
   },
   "total_scans": 245,
   "scans_by_device": [
