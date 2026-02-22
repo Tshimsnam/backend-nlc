@@ -209,6 +209,7 @@ class TicketController extends Controller
         return response()->json([
             'success' => true,
             'ticket' => $ticket,
+            'reference' => $ticket->reference, // Ajouter la référence à la racine pour faciliter l'accès
         ]);
     }
 
