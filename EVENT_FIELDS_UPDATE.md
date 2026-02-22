@@ -2,7 +2,7 @@
 
 ## Nouveaux champs ajoutés
 
-D'après l'affiche "Le Grand Salon de l'Autisme", les champs suivants ont été ajoutés au modèle Event:
+D'après l'affiche "Le Grand Salon de l'Autiste", les champs suivants ont été ajoutés au modèle Event:
 
 ### Champs de contact
 - `contact_phone` (string, nullable) - Numéro de téléphone de contact (ex: +243 844 338 747)
@@ -45,7 +45,7 @@ D'après l'affiche "Le Grand Salon de l'Autisme", les champs suivants ont été 
 ### 6. Seeder
 - `database/seeders/EventSeeder.php`
   - Mise à jour avec les données de l'affiche réelle:
-    - Titre: "Le Grand Salon de l'Autisme"
+    - Titre: "Le Grand Salon de l'Autiste"
     - Dates: 15-16 Avril 2026
     - Horaires: 08h00-16h00
     - Lieu: Fleuve Congo Hôtel Kinshasa
@@ -88,7 +88,7 @@ php artisan migrate:fresh --seed
 ```json
 POST /api/events
 {
-  "title": "Le Grand Salon de l'Autisme",
+  "title": "Le Grand Salon de l'Autiste",
   "date": "2026-04-15",
   "end_date": "2026-04-16",
   "time": "08h00",

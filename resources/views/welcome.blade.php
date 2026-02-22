@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Le Grand Salon de l'Autisme - 15-16 Avril 2026</title>
+    <title>Le Grand Salon de l'Autiste - 15-16 Avril 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
@@ -83,7 +83,7 @@
                     <h1 class="text-6xl md:text-8xl font-extrabold text-white mb-4 leading-tight">
                         Grand<br>
                         Salon de<br>
-                        <span class="text-yellow-400">L'AUTISME</span>
+                        <span class="text-yellow-400">l'Autiste</span>
                     </h1>
                     <div class="w-32 h-2 bg-yellow-400 mx-auto rounded-full"></div>
                 </div>

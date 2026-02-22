@@ -2,7 +2,7 @@
 
 ## Image de couverture actuelle
 
-L'image "Le Grand Salon de l'Autisme" que vous avez fournie doit être placée dans le dossier public du projet.
+L'image "Le Grand Salon de l'Autiste" que vous avez fournie doit être placée dans le dossier public du projet.
 
 ## Emplacement de l'image
 

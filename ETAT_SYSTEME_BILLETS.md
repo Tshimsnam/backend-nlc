@@ -128,7 +128,7 @@ Méthode `updateEvent()` mise à jour avec validation pour:
 ### 7. Seeder avec Données Réelles
 **Fichier**: `database/seeders/EventSeeder.php`
 
-Événement: "Le Grand Salon de l'Autisme"
+Événement: "Le Grand Salon de l'Autiste"
 - Dates: 15-16 Avril 2026
 - Horaires: 08h00 - 16h00
 - Lieu: Fleuve Congo Hôtel Kinshasa

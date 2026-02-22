@@ -31,7 +31,7 @@ Tous les éléments du système de différenciation des billets physiques et en 
 
 #### Seeders
 ✅ `database/seeders/EventSeeder.php`
-- Événement "Le Grand Salon de l'Autisme" avec toutes les données réelles
+- Événement "Le Grand Salon de l'Autiste" avec toutes les données réelles
 - 10 sponsors
 - 5 tarifs différents
 - Toutes les informations de contact
