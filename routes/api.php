@@ -28,10 +28,12 @@ use App\Http\Controllers\API\EventPriceController;
 use App\Http\Controllers\API\EventScanController;
 use App\Http\Controllers\API\QRScanController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\API\PhysicalTicketController;
 
 // --- Événements (lecture publique)
 Route::get('/events', [APIEventController::class, 'index']);
-Route::get('/events/{event:slug}', [APIEventController::class, 'show']);
+Route::get('/events/{event:slug}', [APIEventController::class, 'show'])->name('api.events.show.slug');
+Route::get('/events/id/{event}', [APIEventController::class, 'show'])->name('api.events.show.id');
 
 // --- Scan QR Code événement
 Route::post('/events/{slug}/scan', [EventScanController::class, 'recordScan']);
@@ -61,16 +63,30 @@ Route::get('/test', function() {
 // Route::post('/register', [RegistrationController::class, 'store']);
 Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
 
+// --- Recherche de tickets par téléphone
+Route::get('/tickets/search', [TicketController::class, 'searchByPhone']);
+
 // --- Ticket par référence (lecture)
 Route::get('/tickets/{ticketNumber}', [TicketController::class, 'show']);
 
-// --- Scan de billets (QR Code)
+// --- Envoyer une notification par email pour un ticket
+Route::post('/tickets/{ticketNumber}/send-notification', [TicketController::class, 'sendNotification']);
+
+// --- Scan de billets (QR Code) - Accessible à tous les utilisateurs connectés
 // Scanner un billet (via QR code, référence ou téléphone)
 Route::post('/tickets/scan', [QRScanController::class, 'scan'])->middleware('auth:sanctum');
 // Historique des scans d'un billet
 Route::get('/tickets/{reference}/scans', [QRScanController::class, 'getScanHistory'])->middleware('auth:sanctum');
 // Statistiques de scan pour un événement
 Route::get('/events/{eventId}/scan-stats', [QRScanController::class, 'getEventScanStats'])->middleware('auth:sanctum');
+
+// --- Billets physiques (QR codes pré-générés)
+// Vérifier si un QR physique est déjà activé
+Route::post('/tickets/physical/check', [PhysicalTicketController::class, 'checkPhysicalQR'])->middleware('auth:sanctum');
+// Créer un ticket depuis un QR code physique
+Route::post('/tickets/physical', [PhysicalTicketController::class, 'createFromPhysicalQR'])->middleware('auth:sanctum');
+// Récupérer les prix d'un événement pour les billets physiques
+Route::get('/events/{eventId}/prices-for-physical', [PhysicalTicketController::class, 'getEventPrices'])->middleware('auth:sanctum');
 
 // --- Webhooks pour les paiements
 Route::match(['get', 'post'], '/webhooks/maxicash', [MaxiCashWebhookController::class, 'handle'])
@@ -136,9 +152,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::put('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'update'])->middleware('admin.only');
     Route::delete('/events/{event}/prices/{eventPrice}', [EventPriceController::class, 'destroy'])->middleware('admin.only');
 
-    // Validation des paiements en caisse (admin uniquement)
-    Route::get('/tickets/pending-cash', [TicketController::class, 'pendingCashPayments'])->middleware('admin.only');
-    Route::post('/tickets/{ticketNumber}/validate-cash', [TicketController::class, 'validateCashPayment'])->middleware('admin.only');
+    // Validation des paiements en caisse - Accessible à tous les utilisateurs connectés
+    Route::get('/tickets/pending-cash', [TicketController::class, 'pendingCashPayments']);
+    Route::post('/tickets/{ticketNumber}/validate-cash', [TicketController::class, 'validateCashPayment']);
 
     // Routes admin pour le dashboard
     Route::prefix('admin')->middleware('admin.only')->group(function () {
@@ -149,6 +165,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/dashboard/events-stats', [DashboardController::class, 'eventsStats']);
         Route::get('/dashboard/scan-stats', [DashboardController::class, 'scanStats']);
     });
+
+    // Statistiques de l'agent connecté (pour l'app mobile)
+    Route::get('/my-stats', [DashboardController::class, 'myStats']);
 });
 
 

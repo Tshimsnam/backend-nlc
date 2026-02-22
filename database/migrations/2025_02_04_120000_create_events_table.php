@@ -29,6 +29,12 @@ return new class extends Migration
             $table->json('price')->nullable();
             $table->unsignedInteger('capacity')->nullable();
             $table->unsignedInteger('registered')->default(0);
+            $table->string('contact_phone')->nullable();
+            $table->string('contact_email')->nullable();
+            $table->string('venue_details')->nullable();
+            $table->json('sponsors')->nullable();
+            $table->string('organizer')->nullable();
+            $table->date('registration_deadline')->nullable();
             $table->timestamps();
         });
     }

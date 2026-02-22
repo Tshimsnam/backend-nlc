@@ -94,28 +94,54 @@ const PaymentSuccessPage = () => {
   }, [reference]);
 
   const downloadTicket = async () => {
-    if (!ticketRef.current) return;
+    if (!ticketRef.current) {
+      alert('Élément du billet introuvable. Veuillez réessayer.');
+      return;
+    }
 
     try {
+      // Attendre un peu pour s'assurer que tout est rendu
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const canvas = await html2canvas(ticketRef.current, {
-        scale: 2,
+        scale: 3, // Augmenté pour meilleure qualité
         backgroundColor: "#ffffff",
+        logging: true, // Activé pour debug
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        windowWidth: ticketRef.current.scrollWidth,
+        windowHeight: ticketRef.current.scrollHeight,
       });
 
+      // Vérifier que le canvas n'est pas vide
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Le canvas généré est vide');
+      }
+
       const imgData = canvas.toDataURL("image/png");
+      
+      // Vérifier que l'image n'est pas vide
+      if (!imgData || imgData === 'data:,') {
+        throw new Error('Image générée vide');
+      }
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
+      const imgWidth = 190;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const x = (pdf.internal.pageSize.getWidth() - imgWidth) / 2;
+      const y = 10;
 
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
       pdf.save(`billet-${ticket?.reference}.pdf`);
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
+      alert(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}. Veuillez réessayer.`);
     }
   };
 
