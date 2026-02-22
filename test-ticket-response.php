@@ -10,7 +10,8 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$baseUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost:8000', '/');
+// Utiliser le port 8000 pour l'API Laravel (pas 8080 qui est le frontend)
+$baseUrl = 'http://192.168.40.9:8000';
 $reference = $argv[1] ?? '3LN00ULCMK';
 
 echo "🔍 Test de la réponse API pour le ticket\n";
