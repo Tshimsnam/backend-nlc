@@ -14,7 +14,6 @@ return [
         env('FRONTEND_WEBSITE_URL'),
         env('MOBILE_TICKET_URL'),
         env('MOBILE_TICKET_APP'),
-        '*'
     ],
 
     'allowed_origins_patterns' => [],
