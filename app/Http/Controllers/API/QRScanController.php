@@ -54,7 +54,36 @@ class QRScanController extends Controller
             }
             // Méthode 3: Recherche par téléphone
             elseif ($request->filled('phone')) {
-                $ticket = Ticket::where('phone', $request->phone)->first();
+                $phone = $request->phone;
+                
+                // Normaliser le numéro de téléphone pour la recherche
+                $cleanPhone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+                
+                // Créer des variantes du numéro pour la recherche
+                $phoneVariants = [$phone, $cleanPhone];
+                
+                // Si commence par +243, ajouter la variante avec 0
+                if (str_starts_with($cleanPhone, '+243')) {
+                    $localPhone = '0' . substr($cleanPhone, 4);
+                    $phoneVariants[] = $localPhone;
+                }
+                // Si commence par 243 (sans +), ajouter la variante avec 0
+                elseif (str_starts_with($cleanPhone, '243')) {
+                    $localPhone = '0' . substr($cleanPhone, 3);
+                    $phoneVariants[] = $localPhone;
+                }
+                // Si commence par 0, ajouter la variante avec +243
+                elseif (str_starts_with($cleanPhone, '0')) {
+                    $internationalPhone = '+243' . substr($cleanPhone, 1);
+                    $phoneVariants[] = $internationalPhone;
+                }
+                
+                // Rechercher avec l'une des variantes
+                $ticket = Ticket::where(function($query) use ($phoneVariants) {
+                    foreach ($phoneVariants as $variant) {
+                        $query->orWhere('phone', 'LIKE', '%' . $variant . '%');
+                    }
+                })->first();
             }
             else {
                 return response()->json([
