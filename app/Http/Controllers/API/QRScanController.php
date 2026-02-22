@@ -188,7 +188,15 @@ class QRScanController extends Controller
      */
     public function getEventScanStats(int $eventId): JsonResponse
     {
-        $event = \App\Models\Event::findOrFail($eventId);
+        $event = \App\Models\Event::find($eventId);
+        
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Événement introuvable.',
+                'event_id' => $eventId,
+            ], 404);
+        }
 
         $stats = [
             'event_id' => $event->id,
