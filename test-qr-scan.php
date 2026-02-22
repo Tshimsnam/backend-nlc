@@ -17,7 +17,7 @@ echo "==============================\n\n";
 
 // 1. Vérifier si l'événement existe
 echo "1️⃣ Vérification de l'événement...\n";
-$slug = 'le-trouble-du-spectre-autistique-et-la-scolarite';
+$slug = 'le-grand-salon-de-lautisme';
 $event = Event::where('slug', $slug)->first();
 
 if (!$event) {

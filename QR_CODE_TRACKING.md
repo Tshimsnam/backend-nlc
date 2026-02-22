@@ -34,7 +34,7 @@ POST /api/events/{slug}/scan
   "message": "Scan enregistré avec succès",
   "event": {
     "title": "Le trouble du spectre autistique...",
-    "slug": "le-trouble-du-spectre-autistique-et-la-scolarite"
+    "slug": "le-grand-salon-de-lautisme"
   }
 }
 ```
@@ -62,7 +62,7 @@ GET /api/events/{slug}/scans
 
 ### URL à Encoder
 ```
-https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+https://www.nlcrdc.org/evenements/le-grand-salon-de-lautisme
 ```
 
 ### Générateur en Ligne
@@ -73,7 +73,7 @@ Utiliser: https://www.qr-code-generator.com/
 import { QRCodeSVG } from 'qrcode.react';
 
 <QRCodeSVG 
-  value="https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolarite"
+  value="https://www.nlcrdc.org/evenements/le-grand-salon-de-lautisme"
   size={256}
   level="H"
   includeMargin={true}
@@ -203,20 +203,20 @@ php artisan config:clear
 
 ### Test Enregistrement Scan
 ```bash
-curl -X POST http://localhost:8000/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scan \
+curl -X POST http://localhost:8000/api/events/le-grand-salon-de-lautisme/scan \
   -H "Content-Type: application/json"
 ```
 
 ### Test Récupération Stats
 ```bash
-curl -X GET http://localhost:8000/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scans
+curl -X GET http://localhost:8000/api/events/le-grand-salon-de-lautisme/scans
 ```
 
 ## 📱 QR Code pour l'Événement
 
 ### URL
 ```
-https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+https://www.nlcrdc.org/evenements/le-grand-salon-de-lautisme
 ```
 
 ### Générer le QR Code
