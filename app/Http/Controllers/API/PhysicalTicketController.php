@@ -181,7 +181,15 @@ class PhysicalTicketController extends Controller
      */
     public function getEventPrices($eventId): JsonResponse
     {
-        $event = Event::with('event_prices')->findOrFail($eventId);
+        $event = Event::with('event_prices')->find($eventId);
+        
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Événement introuvable',
+                'event_id' => $eventId,
+            ], 404);
+        }
         
         return response()->json([
             'success' => true,
