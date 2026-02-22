@@ -12,8 +12,8 @@ class EventSeeder extends Seeder
     public function run(): void
     {
         $event = Event::create([
-            'title' => 'Le Grand Salon de l\'Autisme',
-            'slug' => Str::slug('Le Grand Salon de l\'Autisme'),
+            'title' => 'Le Grand Salon de l\'Autiste',
+            'slug' => Str::slug('Le Grand Salon de l\'Autiste'),
             'description' => 'Conférence et ateliers sur le trouble du spectre autistique et son impact sur la scolarité.',
             'full_description' => 'Une conférence complète sur le trouble du spectre autistique et son impact sur la scolarité.',
             'date' => '2026-04-15',
