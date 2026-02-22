@@ -27,10 +27,19 @@ class Event extends Model
         'image',
         'agenda',
         'capacity',
+        'registered',
+        'contact_phone',
+        'contact_email',
+        'venue_details',
+        'sponsors',
+        'organizer',
+        'registration_deadline',
     ];
 
     protected $casts = [
         'agenda' => 'array',
+        'sponsors' => 'array',
+        'registration_deadline' => 'date',
     ];
 
     public function event_prices(): HasMany

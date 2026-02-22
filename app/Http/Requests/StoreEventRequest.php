@@ -24,6 +24,7 @@ class StoreEventRequest extends FormRequest
             'time' => ['required', 'string'],
             'end_time' => ['nullable', 'string'],
             'location' => ['required', 'string', 'max:255'],
+            'venue_details' => ['nullable', 'string', 'max:255'],
             'type' => ['required', Rule::in(['workshop', 'celebration', 'seminar', 'gala', 'conference'])],
             'status' => ['nullable', Rule::in(['upcoming', 'past'])],
             'image' => ['nullable', 'string', 'max:500'],
@@ -32,6 +33,12 @@ class StoreEventRequest extends FormRequest
             'agenda.*.time' => ['required_with:agenda', 'string'],
             'agenda.*.activities' => ['required_with:agenda', 'string'],
             'capacity' => ['nullable', 'integer', 'min:0'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'organizer' => ['nullable', 'string', 'max:255'],
+            'registration_deadline' => ['nullable', 'date'],
+            'sponsors' => ['nullable', 'array'],
+            'sponsors.*' => ['string', 'max:255'],
         ];
     }
 }

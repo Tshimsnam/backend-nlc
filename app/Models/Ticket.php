@@ -14,6 +14,8 @@ class Ticket extends Model
     protected $fillable = [
         'event_id',
         'event_price_id',
+        'participant_id',
+        'physical_qr_id',
         'full_name',
         'email',
         'phone',
@@ -25,7 +27,9 @@ class Ticket extends Model
         'pay_type',
         'pay_sub_type',
         'payment_status',
+        'validated_by',
         'gateway_log_id',
+        'qr_data',
         'scan_count',
         'first_scanned_at',
         'last_scanned_at',
@@ -49,11 +53,24 @@ class Ticket extends Model
         return $this->belongsTo(EventPrice::class, 'event_price_id');
     }
 
+    public function participant(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class);
+    }
+
     /**
      * Relation avec les scans du billet
      */
     public function scans(): HasMany
     {
         return $this->hasMany(TicketScan::class);
+    }
+
+    /**
+     * Relation avec l'utilisateur qui a validé le billet
+     */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 }

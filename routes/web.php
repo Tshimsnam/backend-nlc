@@ -7,9 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
-    // Rediriger vers le frontend
-    // $frontendUrl = env('FRONTEND_WEBSITE_URL', 'http://localhost:8080');
-    // return redirect($frontendUrl);
+    return view('welcome');
 });
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
@@ -42,6 +40,10 @@ Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name(
 // Routes Admin Dashboard (Vue Blade)
 Route::get('/admin', [DashboardController::class, 'view'])->name('admin.dashboard.view');
 Route::post('/admin/tickets/{reference}/validate', [DashboardController::class, 'validateTicketWeb'])->name('admin.tickets.validate.web');
+Route::post('/admin/agents/create', [DashboardController::class, 'createAgent'])->name('admin.agents.create');
+Route::get('/admin/agents/{id}/details', [DashboardController::class, 'agentDetails'])->name('admin.agents.details');
+Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
+Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
 
 // Routes Admin Dashboard (API JSON)
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only'])->group(function () {

@@ -1,6 +1,6 @@
 # Application Mobile - Gestion des Billets et Enregistrements
 
-Application mobile pour la gestion des événements, permettant l'enregistrement des participants, la vérification des billets et le contrôle d'accès.
+Application mobile pour la gestion des événements, permettant l'enregistrement des participants, la vérification des billets (physiques et en ligne), le contrôle d'accès et le suivi des performances des agents.
 
 ---
 
@@ -8,65 +8,127 @@ Application mobile pour la gestion des événements, permettant l'enregistrement
 
 ### 1. Authentification
 - Connexion sécurisée pour les utilisateurs (agents, organisateurs, contrôleurs)
-- Gestion des sessions
-- Déconnexion
+- Gestion des sessions avec JWT
+- Déconnexion sécurisée
+- Gestion des rôles et permissions
 
-### 2. Enregistrement d'un Participant
-- Enregistrement via numéro de référence du billet
-- Validation automatique du billet
-- Confirmation d'enregistrement
+### 2. Gestion des Billets Physiques et En Ligne
 
-### 3. Vérification de Billet
+#### 🔲 Billets Physiques (QR Codes Pré-générés)
+- **Activation de billets physiques** : Associer un QR code physique à un participant
+- Scan du QR code physique pour activation
+- Validation du paiement en caisse
+- Génération de billets physiques par lot pour les événements
+- Identification unique via `physical_qr_id`
+
+#### 💻 Billets En Ligne
+- Billets achetés via le site web
+- Paiement en ligne (MaxiCash, M-Pesa, Orange Money)
+- QR code généré automatiquement après paiement
+- Envoi par email du billet
+
+### 3. Vérification et Validation de Billets
+
 Trois méthodes de vérification :
-- **Scan QR Code** : Scanner directement le QR code sur le billet
+- **Scan QR Code** : Scanner directement le QR code sur le billet (physique ou en ligne)
 - **Numéro de téléphone** : Rechercher par numéro de téléphone
 - **Numéro de référence** : Rechercher par référence du billet
 
 Affichage des informations :
+- Type de billet (🔲 Physique ou 💻 En ligne)
 - Nom complet du participant
-- Événement
-- Catégorie (Adulte, Enfant, VIP, etc.)
-- Montant payé
-- Statut du paiement
+- Événement et détails
+- Catégorie (medecin, parent, etudiant, etc.)
+- Montant payé et devise
+- Statut du paiement (completed, pending_cash, failed)
 - Date d'achat
 - **Nombre de scans** : Combien de fois le billet a été scanné
 - **Premier scan** : Date et heure du premier scan
 - **Dernier scan** : Date et heure du dernier scan
+- **Agent validateur** : Qui a validé le billet
 
 **Enregistrement automatique du scan :**
 - Chaque scan est enregistré dans la base de données
 - Le compteur de scans est incrémenté automatiquement
-- L'agent qui a scanné est enregistré
+- L'agent qui a scanné est enregistré (`validated_by`)
 - Le lieu du scan est enregistré (Entrée, VIP, etc.)
+- Historique complet des scans disponible
 
-### 4. Enregistrement d'un Client
-- Création de nouveaux clients/participants
-- Saisie des informations personnelles
-- Génération automatique de référence
+### 4. Activation de Billets Physiques
+- Scanner un QR code physique pré-généré
+- Saisir les informations du participant
+- Sélectionner le tarif de l'événement
+- Valider le paiement en caisse
+- Le billet physique est activé et associé au participant
+
+### 5. Validation de Paiements en Caisse
+- Valider les paiements en espèces pour les billets physiques
+- Marquer le statut du billet comme `completed`
+- Enregistrer l'agent qui a validé le paiement
+
+### 6. Statistiques et Suivi des Agents
+- **Tableau de bord personnel** : Voir ses propres statistiques
+- **Total de validations** : Nombre de billets validés
+- **Séparation physique/en ligne** : Statistiques distinctes
+- **Revenus générés** : Total des revenus par type de billet
+- **Évolution sur 30 jours** : Graphique des validations
+- **Validations par événement** : Performance par événement
+- **Historique des validations** : Liste des 20 dernières validations
+
+
 
 ---
 
 ## 🎯 Cas d'Utilisation
 
-### Scénario 1 : Contrôle d'Accès à l'Événement
+### Scénario 1 : Contrôle d'Accès avec Billet En Ligne
 1. L'agent se connecte à l'application
-2. Le participant présente son billet (QR code ou référence)
-3. L'agent scanne le QR code ou saisit la référence
-4. L'application affiche les informations du billet
+2. Le participant présente son billet en ligne (QR code reçu par email)
+3. L'agent scanne le QR code
+4. L'application affiche les informations du billet (💻 En ligne)
 5. L'agent valide l'accès si le paiement est confirmé
+6. Le scan est enregistré avec l'agent validateur
 
-### Scénario 2 : Enregistrement sur Place
-1. Un participant arrive sans billet
-2. L'agent crée un nouveau client dans l'application
-3. Le système génère une référence
-4. Le participant effectue le paiement en caisse
-5. L'agent enregistre le participant avec la référence
+### Scénario 2 : Activation d'un Billet Physique
+1. Un participant arrive avec un QR code physique pré-imprimé
+2. L'agent scanne le QR code physique
+3. L'application détecte que c'est un billet physique non activé
+4. L'agent saisit les informations du participant (nom, email, téléphone)
+5. L'agent sélectionne le tarif de l'événement
+6. Le participant effectue le paiement en caisse
+7. L'agent valide le paiement
+8. Le billet physique est activé et associé au participant
+9. Le participant peut maintenant utiliser ce QR code pour entrer
 
-### Scénario 3 : Vérification Rapide
+### Scénario 3 : Validation de Paiement en Caisse
+1. Un participant a acheté un billet en ligne avec paiement en caisse
+2. Le participant arrive avec sa référence
+3. L'agent recherche le billet par référence ou téléphone
+4. L'agent vérifie que le statut est `pending_cash`
+5. Le participant paie en espèces
+6. L'agent valide le paiement dans l'application
+7. Le statut passe à `completed`
+8. L'agent qui a validé est enregistré dans `validated_by`
+
+### Scénario 4 : Vérification Rapide par Téléphone
 1. Un participant a perdu son billet physique
 2. L'agent recherche par numéro de téléphone
-3. Le système retrouve le billet
-4. L'agent valide l'accès
+3. Le système retrouve le billet (physique ou en ligne)
+4. L'agent vérifie l'identité du participant
+5. L'agent valide l'accès
+6. Le scan est enregistré
+
+### Scénario 5 : Consultation des Statistiques Agent
+1. L'agent se connecte à l'application
+2. L'agent accède à son tableau de bord personnel
+3. L'application affiche :
+   - Total de validations (physiques + en ligne)
+   - Billets physiques validés (🔲 avec badge purple)
+   - Billets en ligne validés (💻 avec badge blue)
+   - Revenus générés par type
+   - Graphique d'évolution sur 30 jours
+   - Validations par événement
+   - Historique des 20 dernières validations
 
 ---
 
@@ -146,7 +208,7 @@ Response:
 
 **Par Référence**
 ```http
-GET /tickets/{reference}
+GET /api/tickets/{reference}
 Authorization: Bearer {token}
 
 Response:
@@ -155,29 +217,109 @@ Response:
   "full_name": "John Doe",
   "email": "john@example.com",
   "phone": "+243 812 345 678",
+  "physical_qr_id": null,  // null = billet en ligne, non-null = billet physique
   "event": {
     "id": 1,
-    "title": "Concert de Musique",
-    "date": "2026-03-15",
-    "location": "Stade des Martyrs"
+    "title": "Le Grand Salon de l'Autisme",
+    "date": "2026-04-15",
+    "end_date": "2026-04-16",
+    "time": "08:00:00",
+    "end_time": "16:00:00",
+    "location": "Fleuve Congo Hôtel, Kinshasa"
   },
-  "category": "Adulte",
+  "price": {
+    "category": "medecin",
+    "label": "Médecin - Événement complet",
+    "amount": 50.00,
+    "currency": "USD",
+    "duration_type": "full_event"
+  },
   "amount": 50.00,
   "currency": "USD",
   "payment_status": "completed",
+  "pay_type": "maxicash",
+  "validated_by": 5,  // ID de l'agent qui a validé
+  "scan_count": 3,
+  "first_scanned_at": "2026-02-18T10:00:00.000000Z",
+  "last_scanned_at": "2026-02-18T14:30:00.000000Z",
   "created_at": "2026-02-16T10:30:00Z",
   "qr_data": "{\"reference\":\"ABC123XYZ\",\"event_id\":1}"
 }
 ```
 
-**Scanner un Billet (Enregistre le scan)**
+**Activer un Billet Physique**
 ```http
-POST /tickets/scan
+POST /api/physical-tickets/activate
 Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "qr_data": "{\"reference\":\"ABC123XYZ\",\"event\":\"Concert de Musique\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-03-15\",\"location\":\"Kinshasa\"}",
+  "physical_qr_id": "PHY-QR-001-ABC123",
+  "event_price_id": 1,
+  "full_name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+243812345678",
+  "pay_type": "cash"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Billet physique activé avec succès",
+  "ticket": {
+    "id": 15,
+    "reference": "TKT-20260218-ABC123",
+    "physical_qr_id": "PHY-QR-001-ABC123",
+    "full_name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+243812345678",
+    "event_id": 1,
+    "event_price_id": 1,
+    "amount": 50.00,
+    "currency": "USD",
+    "payment_status": "pending_cash",
+    "pay_type": "cash",
+    "qr_data": "{\"reference\":\"TKT-20260218-ABC123\",\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event\":\"Le Grand Salon de l'Autisme\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
+    "event": {
+      "id": 1,
+      "title": "Le Grand Salon de l'Autisme",
+      "date": "2026-04-15"
+    },
+    "price": {
+      "category": "medecin",
+      "label": "Médecin - Événement complet",
+      "amount": 50.00
+    }
+  }
+}
+```
+
+**Valider un Paiement en Caisse**
+```http
+POST /api/tickets/{reference}/validate-cash
+Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "message": "Paiement validé avec succès",
+  "ticket": {
+    "reference": "TKT-20260218-ABC123",
+    "payment_status": "completed",
+    "validated_by": 5,  // ID de l'agent qui a validé
+    "updated_at": "2026-02-18T15:00:00.000000Z"
+  }
+}
+```
+
+**Scanner un Billet (Enregistre le scan)**
+```http
+POST /api/qr-scan
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "qr_data": "{\"reference\":\"ABC123XYZ\",\"physical_qr_id\":null,\"event\":\"Le Grand Salon de l'Autisme\",\"participant\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"+243812345678\",\"amount\":\"50.00\",\"currency\":\"USD\",\"category\":\"medecin\",\"date\":\"2026-04-15\",\"location\":\"Fleuve Congo Hôtel, Kinshasa\"}",
   "scan_location": "Entrée principale"
 }
 
@@ -202,6 +344,7 @@ Response:
   "ticket": {
     "id": 1,
     "reference": "ABC123XYZ",
+    "physical_qr_id": null,  // null = en ligne, non-null = physique
     "full_name": "John Doe",
     "email": "john@example.com",
     "phone": "+243 812 345 678",
@@ -209,39 +352,44 @@ Response:
     "amount": "50.00",
     "currency": "USD",
     "payment_status": "completed",
+    "pay_type": "maxicash",
+    "validated_by": 5,
     "scan_count": 3,
     "first_scanned_at": "2026-02-18T10:00:00.000000Z",
     "last_scanned_at": "2026-02-18T14:30:00.000000Z",
     "event": {
       "id": 1,
-      "title": "Concert de Musique",
-      "date": "2026-03-15",
-      "time": "09:00:00",
-      "location": "Stade des Martyrs"
+      "title": "Le Grand Salon de l'Autisme",
+      "date": "2026-04-15",
+      "time": "08:00:00",
+      "location": "Fleuve Congo Hôtel, Kinshasa"
     },
     "price": {
       "label": "Médecin - Événement complet",
       "category": "medecin",
-      "duration_type": "full_event"
+      "duration_type": "full_event",
+      "amount": 50.00
     }
   },
   "scan_info": {
     "scan_count": 3,
     "is_first_scan": false,
     "last_scanned_at": "2026-02-18T14:30:00.000000Z"
-  }
+  },
+  "ticket_type": "online"  // "online" ou "physical"
 }
 ```
 
 **Historique des Scans d'un Billet**
 ```http
-GET /tickets/{reference}/scans
+GET /api/tickets/{reference}/scans
 Authorization: Bearer {token}
 
 Response:
 {
   "success": true,
   "ticket_reference": "ABC123XYZ",
+  "ticket_type": "online",  // "online" ou "physical"
   "total_scans": 3,
   "scans": [
     {
@@ -253,7 +401,89 @@ Response:
         "name": "Agent Dupont",
         "email": "agent@example.com"
       }
+    },
+    {
+      "id": 2,
+      "scanned_at": "2026-02-18T12:00:00.000000Z",
+      "scan_location": "Zone VIP",
+      "scanned_by_user": {
+        "id": 5,
+        "name": "Agent Dupont",
+        "email": "agent@example.com"
+      }
+    },
+    {
+      "id": 1,
+      "scanned_at": "2026-02-18T10:00:00.000000Z",
+      "scan_location": "Entrée principale",
+      "scanned_by_user": {
+        "id": 3,
+        "name": "Agent Martin",
+        "email": "martin@example.com"
+      }
     }
+  ]
+}
+```
+
+**Statistiques de l'Agent Connecté**
+```http
+GET /api/agent/stats
+Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "agent": {
+    "id": 5,
+    "name": "Agent Dupont",
+    "email": "agent@example.com"
+  },
+  "stats": {
+    "total_validations": 150,
+    "physical_validations": 80,
+    "online_validations": 70,
+    "total_revenue": 7500.00,
+    "physical_revenue": 4000.00,
+    "online_revenue": 3500.00,
+    "average_per_validation": 50.00
+  },
+  "validations_evolution": [
+    {
+      "date": "2026-02-18",
+      "total": 15,
+      "physical": 8,
+      "online": 7
+    },
+    {
+      "date": "2026-02-17",
+      "total": 12,
+      "physical": 6,
+      "online": 6
+    }
+    // ... 30 derniers jours
+  ],
+  "validations_by_event": [
+    {
+      "event_id": 1,
+      "event_title": "Le Grand Salon de l'Autisme",
+      "total": 50,
+      "physical": 25,
+      "online": 25,
+      "revenue": 2500.00
+    }
+  ],
+  "recent_validations": [
+    {
+      "reference": "ABC123XYZ",
+      "ticket_type": "online",
+      "full_name": "John Doe",
+      "event_title": "Le Grand Salon de l'Autisme",
+      "amount": 50.00,
+      "currency": "USD",
+      "validated_at": "2026-02-18T14:30:00.000000Z"
+    }
+    // ... 20 dernières validations
   ]
 }
 ```
@@ -295,65 +525,11 @@ Response:
 }
 ```
 
-#### 4. Création d'un Client
-
-**Créer un Nouveau Client**
-```http
-POST /events/{event_id}/register
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "event_price_id": 1,
-  "full_name": "Jane Doe",
-  "email": "jane@example.com",
-  "phone": "+243 812 345 679",
-  "pay_type": "cash"
-}
-
-Response:
-{
-  "success": true,
-  "payment_mode": "cash",
-  "ticket": {
-    "reference": "XYZ789ABC",
-    "full_name": "Jane Doe",
-    "email": "jane@example.com",
-    "phone": "+243 812 345 679",
-    "event": "Concert de Musique",
-    "category": "Adulte",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "pending_cash",
-    "qr_data": "{\"reference\":\"XYZ789ABC\",\"event_id\":1}"
-  },
-  "message": "Ticket créé. Paiement en caisse requis."
-}
-```
-
-#### 5. Validation Paiement en Caisse
-
-**Valider un Paiement**
-```http
-POST /tickets/{reference}/validate-cash
-Authorization: Bearer {token}
-
-Response:
-{
-  "success": true,
-  "message": "Paiement validé avec succès",
-  "ticket": {
-    "reference": "XYZ789ABC",
-    "status": "completed"
-  }
-}
-```
-
-#### 6. Liste des Événements
+#### 4. Liste des Événements
 
 **Obtenir les Événements Actifs**
 ```http
-GET /events
+GET /api/events
 Authorization: Bearer {token}
 
 Response:
@@ -361,26 +537,86 @@ Response:
   "events": [
     {
       "id": 1,
-      "title": "Concert de Musique",
-      "slug": "concert-de-musique",
-      "date": "2026-03-15",
-      "location": "Stade des Martyrs",
+      "title": "Le Grand Salon de l'Autisme",
+      "slug": "grand-salon-autisme-2026",
+      "description": "Deux jours de conférences et ateliers sur l'autisme",
+      "date": "2026-04-15",
+      "end_date": "2026-04-16",
+      "time": "08:00:00",
+      "end_time": "16:00:00",
+      "location": "Fleuve Congo Hôtel, Kinshasa",
+      "venue_details": "Salle de conférence principale",
+      "capacity": 500,
+      "organizer": "Never Limit Children (NLC)",
+      "contact_phone": "+243 844 338 747",
+      "contact_email": "info@nlcrdc.org",
+      "registration_deadline": "2026-04-10",
       "prices": [
         {
           "id": 1,
-          "category": "Adulte",
+          "category": "medecin",
+          "label": "Médecin - Événement complet",
           "amount": 50.00,
-          "currency": "USD"
+          "currency": "USD",
+          "duration_type": "full_event",
+          "description": "Accès aux 2 jours"
         },
         {
           "id": 2,
-          "category": "Enfant",
-          "amount": 25.00,
-          "currency": "USD"
+          "category": "parent",
+          "label": "Parent - Événement complet",
+          "amount": 30.00,
+          "currency": "USD",
+          "duration_type": "full_event",
+          "description": "Accès aux 2 jours"
+        },
+        {
+          "id": 3,
+          "category": "etudiant",
+          "label": "Étudiant - Événement complet",
+          "amount": 20.00,
+          "currency": "USD",
+          "duration_type": "full_event",
+          "description": "Accès aux 2 jours"
         }
-      ]
+      ],
+      "stats": {
+        "total_tickets": 250,
+        "physical_tickets": 120,
+        "online_tickets": 130,
+        "total_revenue": 10000.00
+      }
     }
   ]
+}
+```
+
+#### 5. Génération de QR Codes Physiques
+
+**Générer des QR Codes Physiques pour un Événement**
+```http
+POST /api/events/{event_id}/generate-physical-qrs
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "quantity": 100,
+  "prefix": "PHY-QR-001"
+}
+
+Response:
+{
+  "success": true,
+  "message": "100 QR codes physiques générés avec succès",
+  "qr_codes": [
+    {
+      "physical_qr_id": "PHY-QR-001-ABC123",
+      "qr_data": "{\"physical_qr_id\":\"PHY-QR-001-ABC123\",\"event_id\":1,\"event\":\"Le Grand Salon de l'Autisme\"}",
+      "status": "available"
+    }
+    // ... 100 QR codes
+  ],
+  "download_url": "/api/events/1/physical-qrs/download"
 }
 ```
 
@@ -420,11 +656,6 @@ Response:
 │                         │
 │  ┌─────────────────┐    │
 │  │  🔍 Rechercher  │    │
-│  └─────────────────┘    │
-│                         │
-│  ┌─────────────────┐    │
-│  │  ➕ Nouveau     │    │
-│  │     Client      │    │
 │  └─────────────────┘    │
 │                         │
 │  ┌─────────────────┐    │
@@ -488,6 +719,9 @@ Response:
 │                         │
 │  ✅ Paiement Confirmé   │
 │                         │
+│  💻 Billet En Ligne     │
+│  (ou 🔲 Billet Physique)│
+│                         │
 │  Référence: ABC123XYZ   │
 │  ─────────────────────  │
 │                         │
@@ -495,33 +729,51 @@ Response:
 │  📧 john@example.com    │
 │  📱 +243 812 345 678    │
 │                         │
-│  🎫 Concert de Musique  │
-│  📅 15 Mars 2026        │
-│  📍 Stade des Martyrs   │
+│  🎫 Le Grand Salon de   │
+│     l'Autisme           │
+│  📅 15-16 Avril 2026    │
+│  ⏰ 08H-16H             │
+│  📍 Fleuve Congo Hôtel  │
 │                         │
 │  💰 50.00 USD           │
-│  🏷️  Catégorie: Adulte  │
+│  🏷️  Catégorie: Médecin │
+│  💳 Paiement: MaxiCash  │
+│                         │
+│  📊 Scans: 3 fois       │
+│  🕐 Premier: 18/02 10h  │
+│  🕐 Dernier: 18/02 14h  │
+│  👤 Validé par: Agent 5 │
 │                         │
 │  ┌───────────────────┐  │
 │  │   ENREGISTRER     │  │
 │  └───────────────────┘  │
 │                         │
+│  ┌───────────────────┐  │
+│  │  VOIR HISTORIQUE  │  │
+│  └───────────────────┘  │
+│                         │
 └─────────────────────────┘
 ```
 
-### 6. Écran Nouveau Client
+### 6. Écran Activation Billet Physique
 ```
 ┌─────────────────────────┐
-│  ← Nouveau Client       │
+│  ← Activer Billet       │
+│     Physique            │
+│                         │
+│  🔲 QR Physique Scanné  │
+│  PHY-QR-001-ABC123      │
+│  ─────────────────────  │
 │                         │
 │  Événement              │
 │  ┌───────────────────┐  │
-│  │ Concert de Musique│  │
+│  │ Le Grand Salon de │  │
+│  │ l'Autisme         │  │
 │  └───────────────────┘  │
 │                         │
-│  Catégorie              │
+│  Tarif                  │
 │  ┌───────────────────┐  │
-│  │ Adulte - 50 USD   │  │
+│  │ Médecin - 50 USD  │  │
 │  └───────────────────┘  │
 │                         │
 │  ┌───────────────────┐  │
@@ -537,7 +789,51 @@ Response:
 │  └───────────────────┘  │
 │                         │
 │  ┌───────────────────┐  │
-│  │     CRÉER         │  │
+│  │    ACTIVER        │  │
+│  └───────────────────┘  │
+│                         │
+└─────────────────────────┘
+```
+
+### 7. Écran Statistiques Agent
+```
+┌─────────────────────────┐
+│  ← Mes Statistiques     │
+│                         │
+│  👤 Agent Dupont        │
+│  ─────────────────────  │
+│                         │
+│  📊 Total Validations   │
+│  ┌─────────────────┐    │
+│  │      150        │    │
+│  └─────────────────┘    │
+│                         │
+│  🔲 Billets Physiques   │
+│  ┌─────────────────┐    │
+│  │   80 (53.3%)    │    │
+│  │  4,000.00 USD   │    │
+│  └─────────────────┘    │
+│                         │
+│  💻 Billets En Ligne    │
+│  ┌─────────────────┐    │
+│  │   70 (46.7%)    │    │
+│  │  3,500.00 USD   │    │
+│  └─────────────────┘    │
+│                         │
+│  📈 Évolution 30 jours  │
+│  ┌─────────────────┐    │
+│  │  [Graphique]    │    │
+│  └─────────────────┘    │
+│                         │
+│  🎫 Par Événement       │
+│  ┌─────────────────┐    │
+│  │ Grand Salon     │    │
+│  │ 50 validations  │    │
+│  │ 2,500 USD       │    │
+│  └─────────────────┘    │
+│                         │
+│  ┌───────────────────┐  │
+│  │ VOIR HISTORIQUE   │  │
 │  └───────────────────┘  │
 │                         │
 └─────────────────────────┘
@@ -735,7 +1031,7 @@ import api from './api';
 
 export const getTicketByReference = async (reference) => {
   try {
-    const response = await api.get(`/tickets/${reference}`);
+    const response = await api.get(`/api/tickets/${reference}`);
     return { success: true, ticket: response.data };
   } catch (error) {
     return { 
@@ -747,7 +1043,7 @@ export const getTicketByReference = async (reference) => {
 
 export const scanTicket = async (qrData, scanLocation = 'Entrée') => {
   try {
-    const response = await api.post('/tickets/scan', {
+    const response = await api.post('/api/qr-scan', {
       qr_data: qrData,
       scan_location: scanLocation
     });
@@ -762,7 +1058,7 @@ export const scanTicket = async (qrData, scanLocation = 'Entrée') => {
 
 export const scanTicketByReference = async (reference, scanLocation = 'Entrée') => {
   try {
-    const response = await api.post('/tickets/scan', {
+    const response = await api.post('/api/qr-scan', {
       reference: reference,
       scan_location: scanLocation
     });
@@ -777,7 +1073,7 @@ export const scanTicketByReference = async (reference, scanLocation = 'Entrée')
 
 export const searchTicketByPhone = async (phone) => {
   try {
-    const response = await api.get(`/tickets/search?phone=${phone}`);
+    const response = await api.get(`/api/tickets/search?phone=${phone}`);
     return { success: true, tickets: response.data.tickets };
   } catch (error) {
     return { 
@@ -789,7 +1085,7 @@ export const searchTicketByPhone = async (phone) => {
 
 export const getTicketScanHistory = async (reference) => {
   try {
-    const response = await api.get(`/tickets/${reference}/scans`);
+    const response = await api.get(`/api/tickets/${reference}/scans`);
     return { success: true, data: response.data };
   } catch (error) {
     return { 
@@ -801,12 +1097,57 @@ export const getTicketScanHistory = async (reference) => {
 
 export const registerParticipant = async (reference) => {
   try {
-    const response = await api.post(`/tickets/${reference}/register`);
+    const response = await api.post(`/api/tickets/${reference}/register`);
     return { success: true, data: response.data };
   } catch (error) {
     return { 
       success: false, 
       message: error.response?.data?.message || 'Erreur d\'enregistrement' 
+    };
+  }
+};
+
+// Nouvelles fonctions pour billets physiques
+export const activatePhysicalTicket = async (physicalQrId, eventPriceId, participantData) => {
+  try {
+    const response = await api.post('/api/physical-tickets/activate', {
+      physical_qr_id: physicalQrId,
+      event_price_id: eventPriceId,
+      full_name: participantData.full_name,
+      email: participantData.email,
+      phone: participantData.phone,
+      pay_type: 'cash'
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors de l\'activation' 
+    };
+  }
+};
+
+export const validateCashPayment = async (reference) => {
+  try {
+    const response = await api.post(`/api/tickets/${reference}/validate-cash`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors de la validation' 
+    };
+  }
+};
+
+// Statistiques de l'agent
+export const getAgentStats = async () => {
+  try {
+    const response = await api.get('/api/agent/stats');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Erreur lors de la récupération des statistiques' 
     };
   }
 };
@@ -964,12 +1305,25 @@ export default ScanQRScreen;
 
 ```javascript
 // src/screens/TicketDetailsScreen.js
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { registerParticipant } from '../services/tickets';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { registerParticipant, getTicketScanHistory, validateCashPayment } from '../services/tickets';
 
 const TicketDetailsScreen = ({ route, navigation }) => {
-  const { ticket } = route.params;
+  const { ticket, scan_info } = route.params;
+  const [scanHistory, setScanHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadScanHistory();
+  }, []);
+
+  const loadScanHistory = async () => {
+    const result = await getTicketScanHistory(ticket.reference);
+    if (result.success) {
+      setScanHistory(result.data.scans);
+    }
+  };
 
   const handleRegister = async () => {
     const result = await registerParticipant(ticket.reference);
@@ -982,24 +1336,72 @@ const TicketDetailsScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleValidateCash = async () => {
+    Alert.alert(
+      'Confirmer le paiement',
+      'Le participant a-t-il payé en espèces?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            setLoading(true);
+            const result = await validateCashPayment(ticket.reference);
+            setLoading(false);
+            
+            if (result.success) {
+              Alert.alert('Succès', 'Paiement validé avec succès');
+              navigation.goBack();
+            } else {
+              Alert.alert('Erreur', result.message);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return '#4CAF50';
-      case 'pending': return '#FF9800';
+      case 'pending_cash': return '#FF9800';
       case 'failed': return '#F44336';
       default: return '#9E9E9E';
     }
   };
 
+  const getTicketTypeIcon = () => {
+    return ticket.physical_qr_id ? '🔲' : '💻';
+  };
+
+  const getTicketTypeLabel = () => {
+    return ticket.physical_qr_id ? 'Billet Physique' : 'Billet En Ligne';
+  };
+
+  const getTicketTypeBadgeColor = () => {
+    return ticket.physical_qr_id ? '#8B5CF6' : '#3B82F6';
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ticket.payment_status) }]}>
         <Text style={styles.statusText}>
-          {ticket.payment_status === 'completed' ? '✅ Paiement Confirmé' : '⏳ En Attente'}
+          {ticket.payment_status === 'completed' ? '✅ Paiement Confirmé' : 
+           ticket.payment_status === 'pending_cash' ? '⏳ En Attente de Paiement' : 
+           '❌ Paiement Échoué'}
+        </Text>
+      </View>
+
+      <View style={[styles.typeBadge, { backgroundColor: getTicketTypeBadgeColor() }]}>
+        <Text style={styles.typeText}>
+          {getTicketTypeIcon()} {getTicketTypeLabel()}
         </Text>
       </View>
 
       <Text style={styles.reference}>Référence: {ticket.reference}</Text>
+      {ticket.physical_qr_id && (
+        <Text style={styles.physicalId}>QR Physique: {ticket.physical_qr_id}</Text>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.label}>👤 Participant</Text>
@@ -1011,22 +1413,80 @@ const TicketDetailsScreen = ({ route, navigation }) => {
       <View style={styles.section}>
         <Text style={styles.label}>🎫 Événement</Text>
         <Text style={styles.value}>{ticket.event.title}</Text>
-        <Text style={styles.subValue}>📅 {ticket.event.date}</Text>
+        <Text style={styles.subValue}>📅 {ticket.event.date} {ticket.event.end_date && `- ${ticket.event.end_date}`}</Text>
+        {ticket.event.time && (
+          <Text style={styles.subValue}>⏰ {ticket.event.time} {ticket.event.end_time && `- ${ticket.event.end_time}`}</Text>
+        )}
         <Text style={styles.subValue}>📍 {ticket.event.location}</Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.label}>💰 Paiement</Text>
         <Text style={styles.value}>{ticket.amount} {ticket.currency}</Text>
-        <Text style={styles.subValue}>🏷️ Catégorie: {ticket.category}</Text>
+        {ticket.price && (
+          <Text style={styles.subValue}>🏷️ {ticket.price.label}</Text>
+        )}
+        {ticket.pay_type && (
+          <Text style={styles.subValue}>💳 Mode: {ticket.pay_type}</Text>
+        )}
       </View>
+
+      {scan_info && (
+        <View style={styles.section}>
+          <Text style={styles.label}>📊 Informations de Scan</Text>
+          <Text style={styles.subValue}>Nombre de scans: {scan_info.scan_count}</Text>
+          {scan_info.last_scanned_at && (
+            <Text style={styles.subValue}>Dernier scan: {new Date(scan_info.last_scanned_at).toLocaleString('fr-FR')}</Text>
+          )}
+          {ticket.validated_by && (
+            <Text style={styles.subValue}>👤 Validé par: Agent #{ticket.validated_by}</Text>
+          )}
+        </View>
+      )}
+
+      {scanHistory.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.label}>📜 Historique des Scans</Text>
+          {scanHistory.slice(0, 5).map((scan, index) => (
+            <View key={scan.id} style={styles.scanItem}>
+              <Text style={styles.scanText}>
+                {new Date(scan.scanned_at).toLocaleString('fr-FR')}
+              </Text>
+              <Text style={styles.scanSubText}>
+                📍 {scan.scan_location} • 👤 {scan.scanned_by_user?.name}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {ticket.payment_status === 'pending_cash' && (
+        <TouchableOpacity 
+          style={[styles.button, styles.validateButton]} 
+          onPress={handleValidateCash}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'VALIDATION...' : 'VALIDER LE PAIEMENT EN CAISSE'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {ticket.payment_status === 'completed' && (
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>ENREGISTRER LE PARTICIPANT</Text>
         </TouchableOpacity>
       )}
-    </View>
+
+      <TouchableOpacity 
+        style={[styles.button, styles.secondaryButton]} 
+        onPress={() => navigation.navigate('ScanHistory', { reference: ticket.reference })}
+      >
+        <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+          VOIR HISTORIQUE COMPLET
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
@@ -1039,7 +1499,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     padding: 15,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 10,
     alignItems: 'center',
   },
   statusText: {
@@ -1047,12 +1507,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  typeBadge: {
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  typeText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
   reference: {
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
     color: '#333',
+  },
+  physicalId: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#8B5CF6',
+    fontWeight: '600',
   },
   section: {
     marginBottom: 20,
@@ -1077,17 +1555,43 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 3,
   },
+  scanItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  scanText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  scanSubText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
   button: {
     backgroundColor: '#2196F3',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
+  },
+  validateButton: {
+    backgroundColor: '#4CAF50',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#2196F3',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  secondaryButtonText: {
+    color: '#2196F3',
   },
 });
 
