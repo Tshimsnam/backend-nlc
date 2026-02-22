@@ -5,7 +5,7 @@
 ### Le Problème
 Quand tu scannes le QR code généré avec `qr-code-generator.html`, il pointe vers :
 ```
-https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+https://www.nlcrdc.org/evenements/le-grand-salon-de-lautisme
 ```
 
 Mais ton backend local est sur :
@@ -26,7 +26,7 @@ Donc le scan va vers la **production**, pas vers ton **environnement local**.
 
 **URL :**
 ```
-https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+https://www.nlcrdc.org/evenements/le-grand-salon-de-lautisme
 ```
 
 ### 2. `qr-code-generator-local.html` - DÉVELOPPEMENT 🔧
@@ -37,7 +37,7 @@ https://www.nlcrdc.org/evenements/le-trouble-du-spectre-autistique-et-la-scolari
 
 **URL :**
 ```
-http://192.168.171.9:3000/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+http://192.168.171.9:3000/evenements/le-grand-salon-de-lautisme
 ```
 
 ## 🧪 Comment Tester en Local
@@ -149,19 +149,19 @@ VITE_API_URL=https://api.nlcrdc.org/api
 ### Tester avec cURL
 ```bash
 # Local
-curl -X POST http://192.168.171.9:8000/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scan
+curl -X POST http://192.168.171.9:8000/api/events/le-grand-salon-de-lautisme/scan
 
 # Production
-curl -X POST https://api.nlcrdc.org/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scan
+curl -X POST https://api.nlcrdc.org/api/events/le-grand-salon-de-lautisme/scan
 ```
 
 ### Vérifier les Scans
 ```bash
 # Local
-curl http://192.168.171.9:8000/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scans
+curl http://192.168.171.9:8000/api/events/le-grand-salon-de-lautisme/scans
 
 # Production
-curl https://api.nlcrdc.org/api/events/le-trouble-du-spectre-autistique-et-la-scolarite/scans
+curl https://api.nlcrdc.org/api/events/le-grand-salon-de-lautisme/scans
 ```
 
 ## 📊 Résumé

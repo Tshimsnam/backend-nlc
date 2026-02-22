@@ -67,7 +67,7 @@ Utilisez le fichier `qr-code-event-scan.html` pour générer le QR code.
 ### Contenu du QR Code
 
 ```
-https://votre-site.com/evenements/le-trouble-du-spectre-autistique-et-la-scolarite
+https://votre-site.com/evenements/le-grand-salon-de-lautisme
 ```
 
 Simple URL vers la page de l'événement.
