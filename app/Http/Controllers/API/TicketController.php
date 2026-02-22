@@ -334,9 +334,39 @@ class TicketController extends Controller
 
         $phone = $request->input('phone');
 
-        // Rechercher tous les tickets avec ce numéro de téléphone
+        // Normaliser le numéro de téléphone pour la recherche
+        // Enlever tous les espaces, tirets, parenthèses
+        $cleanPhone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+        
+        // Créer des variantes du numéro pour la recherche
+        $phoneVariants = [$phone, $cleanPhone];
+        
+        // Si commence par +243, ajouter la variante avec 0
+        if (str_starts_with($cleanPhone, '+243')) {
+            $localPhone = '0' . substr($cleanPhone, 4);
+            $phoneVariants[] = $localPhone;
+            $phoneVariants[] = preg_replace('/[\s\-\(\)]+/', '', $localPhone);
+        }
+        // Si commence par 243 (sans +), ajouter la variante avec 0
+        elseif (str_starts_with($cleanPhone, '243')) {
+            $localPhone = '0' . substr($cleanPhone, 3);
+            $phoneVariants[] = $localPhone;
+            $phoneVariants[] = preg_replace('/[\s\-\(\)]+/', '', $localPhone);
+        }
+        // Si commence par 0, ajouter la variante avec +243
+        elseif (str_starts_with($cleanPhone, '0')) {
+            $internationalPhone = '+243' . substr($cleanPhone, 1);
+            $phoneVariants[] = $internationalPhone;
+            $phoneVariants[] = preg_replace('/[\s\-\(\)]+/', '', $internationalPhone);
+        }
+
+        // Rechercher tous les tickets avec l'une des variantes du numéro
         $tickets = Ticket::with(['event', 'price', 'participant'])
-            ->where('phone', $phone)
+            ->where(function($query) use ($phoneVariants) {
+                foreach ($phoneVariants as $variant) {
+                    $query->orWhere('phone', 'LIKE', '%' . $variant . '%');
+                }
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -345,6 +375,7 @@ class TicketController extends Controller
                 'success' => false,
                 'message' => 'Aucun ticket trouvé pour ce numéro de téléphone.',
                 'phone' => $phone,
+                'searched_variants' => $phoneVariants,
                 'tickets' => [],
             ], 404);
         }
