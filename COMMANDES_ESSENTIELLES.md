@@ -18,7 +18,7 @@ php artisan migrate
 ```bash
 php artisan db:seed --class=EventSeeder
 ```
-✅ Crée l'événement "Le Grand Salon de l'Autisme" avec toutes les données
+✅ Crée l'événement "Le Grand Salon de l'Autiste" avec toutes les données
 
 ### 4. Tester les Statistiques
 ```bash

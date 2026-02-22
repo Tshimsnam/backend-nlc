@@ -241,10 +241,10 @@ $request->validate([
 
 ## 🎯 Exemple de remplissage
 
-### Événement: Le Grand Salon de l'Autisme
+### Événement: Le Grand Salon de l'Autiste
 
 **Informations de base:**
-- Titre: `Le Grand Salon de l'Autisme`
+- Titre: `Le Grand Salon de l'Autiste`
 - Description courte: `Conférence et ateliers sur le trouble du spectre autistique`
 - Description complète: `Une conférence complète sur le trouble du spectre autistique et son impact sur la scolarité. Deux jours d'ateliers pratiques et de conférences plénières.`
 - Date de début: `2026-04-15`

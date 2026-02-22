@@ -1,8 +1,8 @@
-# 🎨 Landing Page - Le Grand Salon de l'Autisme
+# 🎨 Landing Page - Le Grand Salon de l'Autiste
 
 ## 🎯 Vue d'Ensemble
 
-Page d'accueil (landing page) moderne et attractive pour l'événement "Le Grand Salon de l'Autisme" avec un bouton d'inscription qui redirige vers le frontend.
+Page d'accueil (landing page) moderne et attractive pour l'événement "Le Grand Salon de l'Autiste" avec un bouton d'inscription qui redirige vers le frontend.
 
 **Date**: 21 Février 2026  
 **URL**: `/` (racine du site)  
@@ -165,7 +165,7 @@ http://localhost:8080/evenements
 <h1 class="text-8xl font-extrabold text-white">
   Grand<br>
   Salon de<br>
-  <span class="text-yellow-400">L'AUTISME</span>
+  <span class="text-yellow-400">l'Autiste</span>
 </h1>
 ```
 
@@ -268,7 +268,7 @@ Route::get('/', function () {
 ## 📊 Contenu Affiché
 
 ### Informations Principales
-- **Titre**: Le Grand Salon de l'Autisme
+- **Titre**: Le Grand Salon de l'Autiste
 - **Dates**: 15-16 Avril 2026
 - **Horaires**: 08H - 16H
 - **Lieu**: Fleuve Congo Hôtel Kinshasa
@@ -441,7 +441,7 @@ FRONTEND_WEBSITE_URL=https://votre-frontend.com
 
 ### Meta Tags
 ```html
-<title>Le Grand Salon de l'Autisme - 15-16 Avril 2026</title>
+<title>Le Grand Salon de l'Autiste - 15-16 Avril 2026</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ```
 

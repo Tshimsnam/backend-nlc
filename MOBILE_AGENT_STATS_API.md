@@ -63,7 +63,7 @@ Content-Type: application/json
   "validations_by_event": [
     {
       "id": 1,
-      "title": "Le Grand Salon de l'Autisme",
+      "title": "Le Grand Salon de l'Autiste",
       "total": 50,
       "physical": 25,
       "online": 25,
@@ -83,7 +83,7 @@ Content-Type: application/json
       "reference": "TKT-1771703593-H4WITL",
       "ticket_type": "online",
       "full_name": "John Doe",
-      "event_title": "Le Grand Salon de l'Autisme",
+      "event_title": "Le Grand Salon de l'Autiste",
       "amount": 50.00,
       "currency": "USD",
       "validated_at": "2026-02-21T14:30:00.000000Z"
@@ -92,7 +92,7 @@ Content-Type: application/json
       "reference": "TKT-1771703594-ABC123",
       "ticket_type": "physical",
       "full_name": "Jane Smith",
-      "event_title": "Le Grand Salon de l'Autisme",
+      "event_title": "Le Grand Salon de l'Autiste",
       "amount": 30.00,
       "currency": "USD",
       "validated_at": "2026-02-21T13:15:00.000000Z"
@@ -533,7 +533,7 @@ curl -X GET http://localhost:8000/api/my-stats \
 │                                     │
 │  🎫 Par Événement                   │
 │  ┌─────────────────────────────┐   │
-│  │ Le Grand Salon de l'Autisme │   │
+│  │ Le Grand Salon de l'Autiste │   │
 │  │ 50 validations              │   │
 │  │ 🔲 25 | 💻 25 | 2,500 USD   │   │
 │  └─────────────────────────────┘   │

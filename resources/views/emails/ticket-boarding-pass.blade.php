@@ -265,6 +265,9 @@
         <div class="boarding-pass">
             <!-- Header -->
             <div class="pass-header">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="https://www.nlcrdc.org/wp-content/uploads/2023/02/LogoWeb2-1.png" alt="Never Limit Children" style="height: 50px; max-width: 200px;">
+                </div>
                 <div class="pass-header-top">
                     <div class="reference-number">BILLET: {{ $ticket->reference }}</div>
                     <div class="status-badge {{ $ticket->payment_status === 'completed' ? 'status-completed' : 'status-pending' }}">

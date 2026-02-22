@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparaison des Templates Email</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .template-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .template-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .template-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .template-preview {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+        .features {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .features h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features li {
+            padding: 5px 0;
+            color: #666;
+        }
+        .features li:before {
+            content: "✓ ";
+            color: #4caf50;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-new {
+            background: #4caf50;
+            color: white;
+        }
+        .badge-classic {
+            background: #2196f3;
+            color: white;
+        }
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📧 Comparaison des Templates Email</h1>
+        <p>Choisissez le design qui correspond le mieux à votre événement</p>
+    </div>
+
+    <div class="container">
+        <!-- Template Classique -->
+        <div class="template-section">
+            <div class="template-title">
+                Template Classique
+                <span class="badge badge-classic">TRADITIONNEL</span>
+            </div>
+            <div class="template-description">
+                Design détaillé et informatif avec toutes les informations visibles. 
+                Idéal pour les événements communautaires et les publics préférant un design traditionnel.
+            </div>
+            <div class="template-preview">
+                <iframe src="preview-email-classic.html"></iframe>
+            </div>
+            <div class="features">
+                <h3>Points forts :</h3>
+                <ul>
+                    <li>Toutes les informations détaillées</li>
+                    <li>Sections colorées et bien séparées</li>
+                    <li>Design convivial et chaleureux</li>
+                    <li>Badges de statut colorés</li>
+                    <li>Section contact complète</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Template Boarding Pass -->
+        <div class="template-section">
+            <div class="template-title">
+                Template Boarding Pass
+                <span class="badge badge-new">✨ NOUVEAU</span>
+            </div>
+            <div class="template-description">
+                Design moderne inspiré des billets d'avion. Look premium et professionnel 
+                avec une excellente lisibilité sur mobile. Recommandé pour les événements professionnels.
+            </div>
+            <div class="template-preview">
+                <iframe src="preview-email-boarding-pass.html"></iframe>
+            </div>
+            <div class="features">
+                <h3>Points forts :</h3>
+                <ul>
+                    <li>Design ultra-moderne et épuré</li>
+                    <li>Excellent sur mobile (responsive)</li>
+                    <li>QR code bien mis en valeur</li>
+                    <li>Look premium qui inspire confiance</li>
+                    <li>Section détachable comme un vrai billet</li>
+                    <li>Logo NLC bien visible</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

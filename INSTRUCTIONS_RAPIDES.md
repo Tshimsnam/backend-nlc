@@ -39,7 +39,7 @@ php artisan tinker --execute="echo json_encode(App\Models\Event::with('event_pri
 ## 🎯 Résultat attendu
 
 Vous devriez voir:
-- ✅ Titre: "Le Grand Salon de l'Autisme"
+- ✅ Titre: "Le Grand Salon de l'Autiste"
 - ✅ Dates: 15-16 Avril 2026
 - ✅ Lieu: Fleuve Congo Hôtel Kinshasa
 - ✅ Contact: +243 844 338 747

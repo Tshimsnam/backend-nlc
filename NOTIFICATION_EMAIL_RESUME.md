@@ -56,7 +56,7 @@ Route::post('/tickets/{ticketNumber}/send-notification', [TicketController::clas
 ┌─────────────────────────────────────┐
 │  [Header Violet/Bleu]               │
 │  🎫 Votre Billet                    │
-│  Le Grand Salon de l'Autisme        │
+│  Le Grand Salon de l'Autiste        │
 ├─────────────────────────────────────┤
 │  Bonjour John Doe,                  │
 │                                     │

@@ -11,7 +11,7 @@ Fonctionnalité: Page d'accueil pour l'événement avec bouton
 ───────────────────────────────────────────────────────────────
 
 Créer une page d'accueil attractive pour "Le Grand Salon de
-l'Autisme" avec:
+l'Autiste" avec:
   • Informations complètes sur l'événement
   • Design moderne et responsive
   • Bouton "Je m'inscris" redirigeant vers /evenements
@@ -183,7 +183,7 @@ Backend:
 ───────────────────────────────────────────────────────────────
 
 Événement:
-  • Titre: Le Grand Salon de l'Autisme
+  • Titre: Le Grand Salon de l'Autiste
   • Dates: 15-16 Avril 2026
   • Horaires: 08H - 16H
   • Lieu: Fleuve Congo Hôtel Kinshasa

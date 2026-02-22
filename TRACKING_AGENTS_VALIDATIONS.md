@@ -331,7 +331,7 @@ L'administrateur peut maintenant voir sur `/admin/agents/5/details`:
 - **Billets en ligne:** 0 (💻)
 - **Revenus générés:** 50.00 USD
 - **Graphique:** Point sur le 21/02/2026 avec 1 validation physique
-- **Par événement:** Le Grand Salon de l'Autisme - 1 validation
+- **Par événement:** Le Grand Salon de l'Autiste - 1 validation
 - **Dernières validations:** TKT-1234567890-ABC123 - John Doe - 50 USD
 
 ## 🔍 Requêtes SQL Utiles

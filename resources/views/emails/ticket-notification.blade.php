@@ -147,6 +147,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
+            <img src="https://www.nlcrdc.org/wp-content/uploads/2023/02/LogoWeb2-1.png" alt="Never Limit Children" style="height: 50px; max-width: 200px; margin-bottom: 15px;">
             <h1>🎫 Votre Billet</h1>
             <p>{{ $event->title }}</p>
         </div>

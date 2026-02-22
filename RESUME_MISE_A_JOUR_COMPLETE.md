@@ -2,7 +2,7 @@
 
 ## 📋 Vue d'ensemble
 
-Mise à jour complète du système d'événements pour intégrer tous les champs visibles sur l'affiche "Le Grand Salon de l'Autisme".
+Mise à jour complète du système d'événements pour intégrer tous les champs visibles sur l'affiche "Le Grand Salon de l'Autiste".
 
 ## 🎯 Objectif
 
@@ -31,7 +31,7 @@ Enrichir le modèle Event avec les informations complètes de l'événement pour
 
 **Seeders:**
 - ✅ `database/seeders/EventSeeder.php`
-  - Données complètes de l'événement "Le Grand Salon de l'Autisme"
+  - Données complètes de l'événement "Le Grand Salon de l'Autiste"
   - Dates: 15-16 Avril 2026
   - Horaires: 08h00-16h00
   - Lieu: Fleuve Congo Hôtel Kinshasa
@@ -213,7 +213,7 @@ Puis ouvrir: http://localhost:8000/galery/grand-salon-autisme-2026.jpg
 
 ## 🎯 Résultat final
 
-L'événement "Le Grand Salon de l'Autisme" est maintenant complètement configuré avec:
+L'événement "Le Grand Salon de l'Autiste" est maintenant complètement configuré avec:
 
 - ✅ Dates: 15-16 Avril 2026
 - ✅ Horaires: 08h00-16h00
