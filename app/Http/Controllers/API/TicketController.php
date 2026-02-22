@@ -57,7 +57,15 @@ class TicketController extends Controller
 
         $price = EventPrice::where('id', $validated['event_price_id'])
             ->where('event_id', $event->id)
-            ->firstOrFail();
+            ->first();
+        
+        if (!$price) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Prix invalide pour cet événement.',
+                'event_price_id' => $validated['event_price_id'],
+            ], 404);
+        }
 
         $gateway = $validated['pay_type'] ?? 'maxicash';
 
@@ -174,15 +182,34 @@ class TicketController extends Controller
         if ($request->has('gateway_log_id')) {
             $ticket = Ticket::with(['event', 'price'])
                 ->where('gateway_log_id', $request->gateway_log_id)
-                ->firstOrFail();
+                ->first();
+            
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun ticket trouvé avec cet identifiant de transaction.',
+                    'gateway_log_id' => $request->gateway_log_id,
+                ], 404);
+            }
         } else {
             // Sinon, chercher par référence
             $ticket = Ticket::with(['event', 'price'])
                 ->where('reference', $ticketNumber)
-                ->firstOrFail();
+                ->first();
+            
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun ticket trouvé avec cette référence.',
+                    'reference' => $ticketNumber,
+                ], 404);
+            }
         }
 
-        return response()->json($ticket);
+        return response()->json([
+            'success' => true,
+            'ticket' => $ticket,
+        ]);
     }
 
     /**
@@ -190,7 +217,15 @@ class TicketController extends Controller
      */
     public function validateCashPayment(Request $request, string $ticketNumber): JsonResponse
     {
-        $ticket = Ticket::where('reference', $ticketNumber)->firstOrFail();
+        $ticket = Ticket::where('reference', $ticketNumber)->first();
+        
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun ticket trouvé avec cette référence.',
+                'reference' => $ticketNumber,
+            ], 404);
+        }
 
         if ($ticket->payment_status !== 'pending_cash') {
             return response()->json([
@@ -249,7 +284,15 @@ class TicketController extends Controller
         try {
             $ticket = Ticket::with(['event', 'price'])
                 ->where('reference', $ticketNumber)
-                ->firstOrFail();
+                ->first();
+            
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun ticket trouvé avec cette référence.',
+                    'reference' => $ticketNumber,
+                ], 404);
+            }
 
             // Vérifier que le ticket a un email
             if (empty($ticket->email)) {

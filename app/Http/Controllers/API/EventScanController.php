@@ -15,7 +15,15 @@ class EventScanController extends Controller
      */
     public function recordScan(Request $request, $slug)
     {
-        $event = Event::where('slug', $slug)->firstOrFail();
+        $event = Event::where('slug', $slug)->first();
+        
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Événement introuvable.',
+                'slug' => $slug,
+            ], 404);
+        }
 
         $agent = new Agent();
         $agent->setUserAgent($request->userAgent());
@@ -52,7 +60,15 @@ class EventScanController extends Controller
      */
     public function getEventScans($slug)
     {
-        $event = Event::where('slug', $slug)->firstOrFail();
+        $event = Event::where('slug', $slug)->first();
+        
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Événement introuvable.',
+                'slug' => $slug,
+            ], 404);
+        }
 
         $totalScans = EventScan::where('event_id', $event->id)->count();
         

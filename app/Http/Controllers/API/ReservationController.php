@@ -26,7 +26,15 @@ class ReservationController extends Controller
 
         $price = EventPrice::where('id', $validated['event_price_id'])
             ->where('event_id', $event->id)
-            ->firstOrFail();
+            ->first();
+        
+        if (!$price) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Prix invalide pour cet événement.',
+                'event_price_id' => $validated['event_price_id'],
+            ], 404);
+        }
 
         // Créer un ticket "réservé" sans informations complètes
         $ticket = Ticket::create([
@@ -72,7 +80,15 @@ class ReservationController extends Controller
     {
         $ticket = Ticket::where('reference', $reference)
             ->where('payment_status', 'reserved')
-            ->firstOrFail();
+            ->first();
+        
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Réservation introuvable ou déjà complétée.',
+                'reference' => $reference,
+            ], 404);
+        }
 
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255', 'min:3'],
@@ -175,7 +191,15 @@ class ReservationController extends Controller
      */
     public function checkReservation(string $reference): JsonResponse
     {
-        $ticket = Ticket::where('reference', $reference)->firstOrFail();
+        $ticket = Ticket::where('reference', $reference)->first();
+        
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Réservation introuvable.',
+                'reference' => $reference,
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
