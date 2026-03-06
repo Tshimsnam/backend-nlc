@@ -1194,6 +1194,7 @@
                         }
                         this.selectedEvent.event_prices.push({
                             category: '',
+                            duration_type: 'full_event',
                             amount: '',
                             currency: 'USD',
                             label: '',
@@ -1586,6 +1587,21 @@
                                                                 <option value="student_2days">Étudiants 2 jours</option>
                                                                 <option value="doctor">Médecin</option>
                                                                 <option value="parent">Parents</option>
+                                                                <option value="other">Autre</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <!-- Type de durée -->
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-gray-700 mb-1">Durée *</label>
+                                                            <select 
+                                                                :name="'prices[' + index + '][duration_type]'"
+                                                                x-model="price.duration_type"
+                                                                required
+                                                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            >
+                                                                <option value="full_event">Événement complet</option>
+                                                                <option value="per_day">Par jour</option>
                                                             </select>
                                                         </div>
 
@@ -1629,7 +1645,7 @@
                                                         </div>
 
                                                         <!-- Description -->
-                                                        <div>
+                                                        <div class="md:col-span-2">
                                                             <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
                                                             <input 
                                                                 type="text" 
