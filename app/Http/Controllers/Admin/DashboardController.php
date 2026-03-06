@@ -468,6 +468,7 @@ class DashboardController extends Controller
             'prices' => 'nullable|array',
             'prices.*.id' => 'nullable|exists:event_prices,id',
             'prices.*.category' => 'required|string',
+            'prices.*.duration_type' => 'nullable|string|in:per_day,full_event',
             'prices.*.amount' => 'required|numeric|min:0',
             'prices.*.currency' => 'required|string|max:10',
             'prices.*.label' => 'nullable|string|max:255',
@@ -501,6 +502,7 @@ class DashboardController extends Controller
                     if ($price && $price->event_id == $event->id) {
                         $price->update([
                             'category' => $priceData['category'],
+                            'duration_type' => $priceData['duration_type'] ?? 'full_event',
                             'amount' => $priceData['amount'],
                             'currency' => $priceData['currency'],
                             'label' => $priceData['label'] ?? null,
@@ -511,6 +513,7 @@ class DashboardController extends Controller
                     // Créer un nouveau prix
                     $event->event_prices()->create([
                         'category' => $priceData['category'],
+                        'duration_type' => $priceData['duration_type'] ?? 'full_event',
                         'amount' => $priceData['amount'],
                         'currency' => $priceData['currency'],
                         'label' => $priceData['label'] ?? null,
