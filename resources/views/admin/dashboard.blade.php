@@ -7,6 +7,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: white !important;
+            }
+            .bg-white {
+                background-color: white !important;
+            }
+            .border-gray-200 {
+                border-color: #e5e7eb !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-50" x-data="{ 
     sidebarOpen: true, 
@@ -17,6 +36,8 @@
     // Gérer le changement d'onglet via URL
     if (window.location.search.includes('tab=tickets')) currentTab = 'tickets';
     if (window.location.search.includes('tab=agents')) currentTab = 'agents';
+    if (window.location.search.includes('tab=qr-physique')) currentTab = 'qr-physique';
+    if (window.location.search.includes('tab=relance')) currentTab = 'relance';
     if (window.location.search.includes('tab=events')) currentTab = 'events';
 ">
     <div class="min-h-screen flex">
@@ -66,6 +87,14 @@
                     <span x-show="sidebarOpen" class="font-medium">QR Billet Physique</span>
                 </button>
 
+                <!-- Relance Paiement -->
+                <button @click="currentTab = 'relance'" :class="currentTab === 'relance' ? 'bg-orange-50 text-orange-600' : 'text-gray-600 hover:bg-gray-50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span x-show="sidebarOpen" class="font-medium">Relance Paiement</span>
+                </button>
+
                 <!-- Événements -->
                 <button @click="currentTab = 'events'" :class="currentTab === 'events' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,6 +128,7 @@
                         <span x-show="currentTab === 'tickets'">Gestion des Tickets</span>
                         <span x-show="currentTab === 'agents'">Gestion des Agents</span>
                         <span x-show="currentTab === 'qr-physique'">QR Billet Physique</span>
+                        <span x-show="currentTab === 'relance'">Relance Paiement</span>
                         <span x-show="currentTab === 'events'">Gestion des Événements</span>
                     </h2>
                     <p class="text-sm text-gray-600">Bienvenue, {{ $user->name }}</p>
@@ -1173,6 +1203,163 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Relance Paiement Tab -->
+                <div x-show="currentTab === 'relance'" style="display: none;" x-data="{ 
+                    searchTerm: '{{ request('relance_search') ?? '' }}',
+                    statusFilter: '{{ request('relance_status') ?? 'all' }}'
+                }">
+                    <!-- Filtres -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
+                        <form method="GET" action="{{ route('admin.dashboard.view') }}" class="space-y-4">
+                            <input type="hidden" name="tab" value="relance" />
+                            
+                            <!-- Barre de recherche -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
+                                <input 
+                                    type="text" 
+                                    name="relance_search" 
+                                    x-model="searchTerm"
+                                    placeholder="Référence, nom, email, téléphone..." 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                    value="{{ request('relance_search') }}"
+                                />
+                            </div>
+
+                            <!-- Filtres par statut -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Statut de paiement</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="submit" name="relance_status" value="all" :class="statusFilter === 'all' ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'" class="px-4 py-2 rounded-lg text-sm font-medium transition">
+                                        Tous
+                                    </button>
+                                    <button type="submit" name="relance_status" value="pending_cash" :class="statusFilter === 'pending_cash' ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'" class="px-4 py-2 rounded-lg text-sm font-medium transition">
+                                        En attente
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Boutons d'action -->
+                            <div class="flex gap-3">
+                                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg font-medium transition">
+                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                    Rechercher
+                                </button>
+                                <a href="{{ route('admin.dashboard.view') }}?tab=relance" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
+                                    Réinitialiser
+                                </a>
+                                <button type="button" onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2 ml-auto">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                    </svg>
+                                    Imprimer la liste
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tableau des tickets en attente de paiement -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200" id="relance-table-container">
+                        <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">Tickets en Attente de Paiement</h3>
+                                <span class="text-sm text-gray-600">{{ $pendingOnlineTickets->total() }} ticket(s) en attente</span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom Complet</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Numéro</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @forelse($pendingOnlineTickets as $ticket)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono text-sm font-medium text-gray-900">{{ $ticket->reference }}</span>
+                                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                                    En ligne
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-medium text-gray-900">{{ $ticket->full_name }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm text-gray-900">{{ $ticket->phone }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm text-gray-900">{{ $ticket->email }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-medium text-gray-900">{{ $ticket->amount }} {{ $ticket->currency }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm text-gray-500">{{ $ticket->created_at->format('d/m/Y H:i') }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                En attente
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                            Aucun ticket en attente de paiement trouvé
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        @if($pendingOnlineTickets->hasPages())
+                            <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                                <div class="text-sm text-gray-700">
+                                    Affichage de {{ $pendingOnlineTickets->firstItem() }} à {{ $pendingOnlineTickets->lastItem() }} sur {{ $pendingOnlineTickets->total() }} résultats
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    @if($pendingOnlineTickets->onFirstPage())
+                                        <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">Précédent</span>
+                                    @else
+                                        <a href="{{ $pendingOnlineTickets->previousPageUrl() }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Précédent</a>
+                                    @endif
+
+                                    <div class="flex gap-1">
+                                        @foreach(range(1, $pendingOnlineTickets->lastPage()) as $page)
+                                            @if($page == $pendingOnlineTickets->currentPage())
+                                                <span class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg">{{ $page }}</span>
+                                            @elseif($page == 1 || $page == $pendingOnlineTickets->lastPage() || abs($page - $pendingOnlineTickets->currentPage()) <= 2)
+                                                <a href="{{ $pendingOnlineTickets->url($page) }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">{{ $page }}</a>
+                                            @elseif(abs($page - $pendingOnlineTickets->currentPage()) == 3)
+                                                <span class="px-4 py-2 text-sm font-medium text-gray-400">...</span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+
+                                    @if($pendingOnlineTickets->hasMorePages())
+                                        <a href="{{ $pendingOnlineTickets->nextPageUrl() }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Suivant</a>
+                                    @else
+                                        <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">Suivant</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
