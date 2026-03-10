@@ -126,6 +126,26 @@ class DashboardController extends Controller
         // Récupérer tous les événements pour la génération de QR codes physiques
         $events = Event::orderBy('date', 'desc')->get();
 
+        // Tickets en attente de paiement (en ligne uniquement) pour l'onglet Relance
+        $pendingOnlineTicketsQuery = Ticket::with(['event'])
+            ->whereNull('physical_qr_id') // Billets en ligne uniquement
+            ->where('payment_status', 'pending_cash'); // En attente de paiement
+
+        // Filtre par recherche
+        if ($request->has('relance_search') && $request->relance_search) {
+            $search = $request->relance_search;
+            $pendingOnlineTicketsQuery->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                    ->orWhere('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $pendingOnlineTickets = $pendingOnlineTicketsQuery->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'relance_page')
+            ->appends($request->query());
+
         // Événements avec pagination pour l'onglet Événements
         $eventsQuery = Event::with('event_prices')->withCount(['tickets', 'event_prices']);
         
@@ -141,7 +161,7 @@ class DashboardController extends Controller
             ->paginate(15, ['*'], 'events_page')
             ->appends($request->query());
 
-        return view('admin.dashboard', compact('user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles', 'events', 'eventsList'));
+        return view('admin.dashboard', compact('user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles', 'events', 'eventsList', 'pendingOnlineTickets'));
     }
 
     /**
