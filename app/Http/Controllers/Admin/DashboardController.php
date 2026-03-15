@@ -672,6 +672,37 @@ class DashboardController extends Controller
     }
 
     /**
+     * Page d'impression dédiée pour les billets non payés
+     */
+    public function printUnpaidTickets(Request $request)
+    {
+        $user = session('admin_user');
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $query = Ticket::with(['event'])
+            ->whereNull('physical_qr_id')
+            ->where('payment_status', '!=', 'completed')
+            ->where('payment_status', '!=', 'cancelled');
+
+        if ($request->has('unpaid_search') && $request->unpaid_search) {
+            $search = $request->unpaid_search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%");
+            });
+        }
+
+        // Pas de pagination pour l'impression — tout récupérer
+        $unpaidTickets = $query->orderBy('created_at', 'desc')->paginate(1000);
+
+        return view('admin.print.unpaid-tickets', compact('unpaidTickets'));
+    }
+
+    /**
      * Liste des billets non payés (API JSON)
      */
     public function unpaidTickets(Request $request): JsonResponse
