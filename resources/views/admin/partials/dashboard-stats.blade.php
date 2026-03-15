@@ -34,7 +34,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-600">Revenus Totaux</p>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ number_format($stats['total_revenue'], 0, ',', ' ') }} FC</p>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ number_format($stats['total_revenue'], 0, ',', ' ') }} {{ \App\Models\Ticket::where('payment_status', 'completed')->value('currency') ?? 'USD' }}</p>
             </div>
             <div class="bg-yellow-100 p-3 rounded-full">
                 <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

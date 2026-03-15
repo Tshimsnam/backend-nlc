@@ -42,6 +42,7 @@ Route::get('/admin', [DashboardController::class, 'view'])->name('admin.dashboar
 Route::post('/admin/tickets/{reference}/validate', [DashboardController::class, 'validateTicketWeb'])->name('admin.tickets.validate.web');
 Route::post('/admin/agents/create', [DashboardController::class, 'createAgent'])->name('admin.agents.create');
 Route::get('/admin/agents/{id}/details', [DashboardController::class, 'agentDetails'])->name('admin.agents.details');
+Route::get('/admin/relancer/print', [DashboardController::class, 'printUnpaidTickets'])->name('admin.relancer.print');
 Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
 Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
 
