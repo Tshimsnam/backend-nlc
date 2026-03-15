@@ -49,6 +49,7 @@ Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEv
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/tickets/pending', [DashboardController::class, 'pendingTickets'])->name('admin.tickets.pending');
+    Route::get('/tickets/unpaid', [DashboardController::class, 'unpaidTickets'])->name('admin.tickets.unpaid');
     Route::post('/tickets/{reference}/validate-api', [DashboardController::class, 'validateTicket'])->name('admin.tickets.validate');
     Route::get('/users', [DashboardController::class, 'users'])->name('admin.users');
     Route::get('/events/stats', [DashboardController::class, 'eventsStats'])->name('admin.events.stats');
