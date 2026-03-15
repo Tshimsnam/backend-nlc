@@ -126,26 +126,6 @@ class DashboardController extends Controller
         // Récupérer tous les événements pour la génération de QR codes physiques
         $events = Event::orderBy('date', 'desc')->get();
 
-        // Tickets en attente de paiement (en ligne uniquement) pour l'onglet Relance
-        $pendingOnlineTicketsQuery = Ticket::with(['event'])
-            ->whereNull('physical_qr_id') // Billets en ligne uniquement
-            ->where('payment_status', 'pending_cash'); // En attente de paiement
-
-        // Filtre par recherche
-        if ($request->has('relance_search') && $request->relance_search) {
-            $search = $request->relance_search;
-            $pendingOnlineTicketsQuery->where(function ($q) use ($search) {
-                $q->where('reference', 'like', "%{$search}%")
-                    ->orWhere('full_name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
-
-        $pendingOnlineTickets = $pendingOnlineTicketsQuery->orderBy('created_at', 'desc')
-            ->paginate(20, ['*'], 'relance_page')
-            ->appends($request->query());
-
         // Événements avec pagination pour l'onglet Événements
         $eventsQuery = Event::with('event_prices')->withCount(['tickets', 'event_prices']);
         
@@ -161,7 +141,33 @@ class DashboardController extends Controller
             ->paginate(15, ['*'], 'events_page')
             ->appends($request->query());
 
-        return view('admin.dashboard', compact('user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles', 'events', 'eventsList', 'pendingOnlineTickets'));
+        // Billets non payés (générés en ligne mais sans paiement)
+        $unpaidQuery = Ticket::with(['event'])
+            ->whereNull('physical_qr_id') // Billets en ligne uniquement
+            ->where('payment_status', '!=', 'completed') // Non payés
+            ->where('payment_status', '!=', 'cancelled'); // Non annulés
+
+        if ($request->has('unpaid_search') && $request->unpaid_search) {
+            $search = $request->unpaid_search;
+            $unpaidQuery->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                    ->orWhere('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $unpaidTickets = $unpaidQuery->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'unpaid_page')
+            ->appends($request->query());
+
+        // Compter les billets non payés pour le badge
+        $unpaidCount = Ticket::whereNull('physical_qr_id')
+            ->where('payment_status', '!=', 'completed')
+            ->where('payment_status', '!=', 'cancelled')
+            ->count();
+
+        return view('admin.dashboard', compact('user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles', 'events', 'eventsList', 'unpaidTickets', 'unpaidCount'));
     }
 
     /**
@@ -663,6 +669,55 @@ class DashboardController extends Controller
         
         return redirect()->route('admin.dashboard.view', ['tab' => 'events'])
             ->with('success', 'Tarif supprimé avec succès!');
+    }
+
+    /**
+     * Liste des billets non payés (API JSON)
+     */
+    public function unpaidTickets(Request $request): JsonResponse
+    {
+        $query = Ticket::with(['event'])
+            ->whereNull('physical_qr_id') // Billets en ligne uniquement
+            ->where('payment_status', '!=', 'completed') // Non payés
+            ->where('payment_status', '!=', 'cancelled'); // Non annulés
+
+        // Filtre par recherche
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                    ->orWhere('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $perPage = $request->get('per_page', 20);
+        $tickets = $query->paginate($perPage);
+
+        // Statistiques
+        $stats = [
+            'total_unpaid' => Ticket::whereNull('physical_qr_id')
+                ->where('payment_status', '!=', 'completed')
+                ->where('payment_status', '!=', 'cancelled')
+                ->count(),
+            'total_amount' => Ticket::whereNull('physical_qr_id')
+                ->where('payment_status', '!=', 'completed')
+                ->where('payment_status', '!=', 'cancelled')
+                ->sum('amount'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'tickets' => $tickets,
+            'stats' => $stats,
+        ]);
     }
 
     /**
