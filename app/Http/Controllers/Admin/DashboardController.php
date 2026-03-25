@@ -167,7 +167,119 @@ class DashboardController extends Controller
             ->where('payment_status', '!=', 'cancelled')
             ->count();
 
-        return view('admin.dashboard', compact('user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles', 'events', 'eventsList', 'unpaidTickets', 'unpaidCount'));
+        // Données pour l'onglet Rapport — seulement si le formulaire a été soumis
+        $reportDateFrom  = $request->get('report_date_from');
+        $reportDateTo    = $request->get('report_date_to');
+        $reportEventId   = $request->get('report_event_id');
+        $reportGenerated = $request->has('report_date_from') && $reportDateFrom && $reportDateTo;
+        $reportData      = $reportGenerated ? $this->buildReportData($reportDateFrom, $reportDateTo, $reportEventId) : null;
+
+        return view('admin.dashboard', compact(
+            'user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles',
+            'events', 'eventsList', 'unpaidTickets', 'unpaidCount',
+            'reportData', 'reportDateFrom', 'reportDateTo', 'reportEventId', 'reportGenerated'
+        ));
+    }
+
+    /**
+     * Calcule toutes les statistiques pour la période donnée
+     */
+    private function buildReportData(string $dateFrom, string $dateTo, ?string $eventId = null): array
+    {
+        $from = $dateFrom . ' 00:00:00';
+        $to   = $dateTo   . ' 23:59:59';
+
+        // Base query helper
+        $ticketBase = fn() => Ticket::whereBetween('created_at', [$from, $to])
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId));
+
+        // --- Statistiques générales ---
+        $totalTickets = $ticketBase()->count();
+        $confirmed    = $ticketBase()->where('payment_status', 'completed')->count();
+        $pending      = $ticketBase()->whereNotIn('payment_status', ['completed', 'cancelled'])->count();
+        $ticketScans  = TicketScan::whereBetween('scanned_at', [$from, $to])
+                            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+                            ->count();
+
+        // --- Ventes par canal ---
+        $physicalTotal     = $ticketBase()->whereNotNull('physical_qr_id')->count();
+        $physicalValidated = $ticketBase()->whereNotNull('physical_qr_id')->where('payment_status', 'completed')->count();
+        $physicalRevenue   = $ticketBase()->whereNotNull('physical_qr_id')->where('payment_status', 'completed')->sum('amount');
+
+        $onlineTotal     = $ticketBase()->whereNull('physical_qr_id')->count();
+        $onlineValidated = $ticketBase()->whereNull('physical_qr_id')->where('payment_status', 'completed')->count();
+        $onlineRevenue   = $ticketBase()->whereNull('physical_qr_id')->where('payment_status', 'completed')->sum('amount');
+
+        // --- Activité des agents (validations + scans) ---
+        $agentActivity = User::select(
+                'users.id',
+                'users.name as agent_name',
+                DB::raw('COUNT(DISTINCT t.id) as total_validations'),
+                DB::raw('SUM(CASE WHEN t.physical_qr_id IS NOT NULL THEN 1 ELSE 0 END) as physical'),
+                DB::raw('SUM(CASE WHEN t.physical_qr_id IS NULL THEN 1 ELSE 0 END) as online'),
+                DB::raw('COALESCE(SUM(t.amount), 0) as revenue'),
+                DB::raw('COUNT(DISTINCT ts.id) as total_scans')
+            )
+            ->join('tickets as t', function($join) use ($from, $to, $eventId) {
+                $join->on('t.validated_by', '=', 'users.id')
+                     ->where('t.payment_status', 'completed')
+                     ->whereBetween('t.updated_at', [$from, $to]);
+                if ($eventId) {
+                    $join->where('t.event_id', $eventId);
+                }
+            })
+            ->leftJoin('ticket_scans as ts', function($join) use ($from, $to, $eventId) {
+                $join->on('ts.scanned_by', '=', 'users.id')
+                     ->whereBetween('ts.scanned_at', [$from, $to]);
+                if ($eventId) {
+                    $join->where('ts.event_id', $eventId);
+                }
+            })
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_validations')
+            ->get();
+
+        // --- Statistiques des événements ---
+        $eventScans    = EventScan::where(function($q) use ($from, $to) {
+                                $q->whereBetween('scanned_at', [$from, $to])
+                                  ->orWhere(function($q2) use ($from, $to) {
+                                      $q2->whereNull('scanned_at')->whereBetween('created_at', [$from, $to]);
+                                  });
+                            })
+                            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+                            ->count();
+        $uniqueScanned = $ticketBase()->where('scan_count', '>', 0)->count();
+        $totalRevenue  = Ticket::where('payment_status', 'completed')
+                            ->whereBetween('updated_at', [$from, $to])
+                            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+                            ->sum('amount');
+
+        // Détail par événement
+        $eventDetails = Event::select('events.id', 'events.title')
+            ->when($eventId, fn($q) => $q->where('events.id', $eventId))
+            ->withCount(['tickets as tickets_created' => fn($q) => $q->whereBetween('tickets.created_at', [$from, $to])])
+            ->withCount(['tickets as tickets_validated' => fn($q) => $q->where('payment_status', 'completed')->whereBetween('tickets.created_at', [$from, $to])])
+            ->addSelect([
+                'event_revenue' => Ticket::selectRaw('COALESCE(SUM(amount), 0)')
+                    ->whereColumn('event_id', 'events.id')
+                    ->where('payment_status', 'completed')
+                    ->whereBetween('created_at', [$from, $to]),
+            ])
+            ->having('tickets_created', '>', 0)
+            ->orderByDesc('tickets_created')
+            ->get();
+
+        // Nom de l'événement filtré
+        $filteredEvent = $eventId ? Event::find($eventId) : null;
+
+        return compact(
+            'totalTickets', 'confirmed', 'pending', 'ticketScans',
+            'physicalTotal', 'physicalValidated', 'physicalRevenue',
+            'onlineTotal', 'onlineValidated', 'onlineRevenue',
+            'agentActivity',
+            'eventScans', 'uniqueScanned', 'totalRevenue', 'eventDetails',
+            'filteredEvent'
+        );
     }
 
     /**
@@ -672,8 +784,31 @@ class DashboardController extends Controller
     }
 
     /**
-     * Page d'impression dédiée pour les billets non payés
+     * Page dédiée export PDF du rapport
      */
+    public function exportRapport(Request $request)
+    {
+        $user = session('admin_user');
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $dateFrom  = $request->get('report_date_from');
+        $dateTo    = $request->get('report_date_to');
+        $eventId   = $request->get('report_event_id');
+
+        if (!$dateFrom || !$dateTo) {
+            return redirect()->route('admin.dashboard.view', ['tab' => 'rapport'])
+                ->with('error', 'Veuillez sélectionner une période.');
+        }
+
+        $reportData  = $this->buildReportData($dateFrom, $dateTo, $eventId);
+        $events      = Event::orderBy('date', 'desc')->get();
+
+        return view('admin.rapport-export', compact(
+            'user', 'reportData', 'dateFrom', 'dateTo', 'eventId', 'events'
+        ));
+    }
     public function printUnpaidTickets(Request $request)
     {
         $user = session('admin_user');
