@@ -43,6 +43,7 @@ Route::post('/admin/tickets/{reference}/validate', [DashboardController::class, 
 Route::post('/admin/agents/create', [DashboardController::class, 'createAgent'])->name('admin.agents.create');
 Route::get('/admin/agents/{id}/details', [DashboardController::class, 'agentDetails'])->name('admin.agents.details');
 Route::get('/admin/rapport/export', [DashboardController::class, 'exportRapport'])->name('admin.rapport.export');
+Route::post('/admin/tickets/{reference}/resend-mail', [DashboardController::class, 'resendTicketMail'])->name('admin.tickets.resend-mail');
 Route::get('/admin/relancer/print', [DashboardController::class, 'printUnpaidTickets'])->name('admin.relancer.print');
 Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
 Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');

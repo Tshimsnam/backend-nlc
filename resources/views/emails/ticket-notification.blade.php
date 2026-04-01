@@ -289,6 +289,9 @@
             <p style="font-size: 12px; color: #999; margin-top: 15px;">
                 Cet email a été envoyé automatiquement. Merci de ne pas y répondre directement.
             </p>
+            <p style="font-size: 11px; color: #bbb; margin-top: 10px;">
+                ✅ Développé par <a href="https://www.franckkapuya.com" style="color: #667eea;">Franck Kapuya</a> – <a href="https://www.franckkapuya.com" style="color: #667eea;">www.franckkapuya.com</a>
+            </p>
         </div>
     </div>
 </body>

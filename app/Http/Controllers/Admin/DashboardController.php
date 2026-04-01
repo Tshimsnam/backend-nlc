@@ -784,6 +784,36 @@ class DashboardController extends Controller
     }
 
     /**
+     * Renvoyer le billet par email
+     */
+    public function resendTicketMail(string $reference)
+    {
+        $user = session('admin_user');
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $ticket = Ticket::with(['event', 'price'])->where('reference', $reference)->firstOrFail();
+
+        if ($ticket->payment_status !== 'completed') {
+            return redirect()->back()->with('error', 'Seuls les billets validés peuvent être renvoyés.');
+        }
+
+        if (!$ticket->email) {
+            return redirect()->back()->with('error', 'Ce billet n\'a pas d\'adresse email.');
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($ticket->email)
+                ->send(new \App\Mail\TicketBoardingPassMail($ticket));
+
+            return redirect()->back()->with('success', "✅ Billet renvoyé avec succès à {$ticket->email}.");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', "❌ Échec de l'envoi à {$ticket->email} : " . $e->getMessage());
+        }
+    }
+
+    /**
      * Page dédiée export PDF du rapport
      */
     public function exportRapport(Request $request)
