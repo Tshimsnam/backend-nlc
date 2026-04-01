@@ -364,7 +364,9 @@
                     <strong>Never Limit Children (NLC)</strong><br>
                     Ensemble pour l'inclusion<br>
                     <br>
-                    Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+                    Cet email a été envoyé automatiquement. Merci de ne pas y répondre.<br>
+                    <br>
+                    <span style="font-size: 11px; opacity: 0.8;">✅ Développé par <a href="https://www.franckkapuya.com" style="color: #fff;">Franck Kapuya</a> – <a href="https://www.franckkapuya.com" style="color: #fff;">www.franckkapuya.com</a></span>
                 </div>
             </div>
         </div>
