@@ -174,11 +174,192 @@ class DashboardController extends Controller
         $reportGenerated = $request->has('report_date_from') && $reportDateFrom && $reportDateTo;
         $reportData      = $reportGenerated ? $this->buildReportData($reportDateFrom, $reportDateTo, $reportEventId) : null;
 
+        // Compteurs pour les badges sidebar
+        $quizCount       = \App\Models\QuizResponse::distinct('session_token')->count('session_token');
+        $evaluationCount = \Illuminate\Support\Facades\DB::table('colloque_evaluations')->count();
+        $quizEventId     = request('quiz_event_id');
+        $evalEventId     = request('eval_event_id');
+
+        // Données Quiz
+        $quizStats = null;
+        if (request('tab') === 'quiz') {
+            $quizStats = $this->buildQuizStats(request('quiz_event_id'));
+        }
+
+        // Données Évaluation
+        $evaluationStats = null;
+        if (request('tab') === 'evaluation') {
+            $evaluationStats = $this->buildEvaluationStats(request('eval_event_id'));
+        }
+
+        // Données Configuration
+        $eventConfigs = null;
+        if (request('tab') === 'configuration') {
+            $eventConfigs = \App\Models\EventConfig::all()->keyBy('event_id');
+        }
+
         return view('admin.dashboard', compact(
             'user', 'stats', 'recentTickets', 'allTickets', 'agents', 'availableRoles',
             'events', 'eventsList', 'unpaidTickets', 'unpaidCount',
-            'reportData', 'reportDateFrom', 'reportDateTo', 'reportEventId', 'reportGenerated'
+            'reportData', 'reportDateFrom', 'reportDateTo', 'reportEventId', 'reportGenerated',
+            'quizCount', 'evaluationCount', 'quizStats', 'evaluationStats',
+            'quizEventId', 'evalEventId', 'eventConfigs'
         ));
+    }
+
+    /**
+     * Stats du quiz GSA 2026
+     */
+    private function buildQuizStats(?string $eventId = null): array
+    {
+        $query = \App\Models\QuizResponse::query()
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId));
+        // Sans filtre événement → on montre tout
+
+        $total = (clone $query)->distinct('session_token')->count('session_token');
+
+        $questionsQuery = \App\Models\QuizQuestion::where('is_active', true)->orderBy('order');
+        if ($eventId) {
+            $questionsQuery->where('event_id', $eventId);
+        }
+        $questions = $questionsQuery->get();
+
+        $byQuestion = (clone $query)
+            ->select('question_id', 'answer', DB::raw('COUNT(*) as count'))
+            ->groupBy('question_id', 'answer')->orderBy('question_id')->get()
+            ->groupBy('question_id')
+            ->map(fn($rows) => $rows->keyBy('answer')->map(fn($r) => $r->count));
+
+        $recentResponses = (clone $query)
+            ->select('session_token', DB::raw('MIN(created_at) as submitted_at'))
+            ->groupBy('session_token')->orderByDesc('submitted_at')->limit(10)->get();
+
+        return compact('total', 'questions', 'byQuestion', 'recentResponses');
+    }
+
+    /**
+     * Stats des évaluations colloque
+     */
+    private function buildEvaluationStats(?string $eventId = null): array
+    {
+        $baseQuery = fn() => DB::table('colloque_evaluations')
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId));
+
+        $total   = $baseQuery()->count();
+        $noteAvg = round($baseQuery()->whereNotNull('note_globale')->avg('note_globale'), 1);
+
+        $evalQuestions = \App\Models\EvaluationQuestion::where('section', 'tsa')
+            ->where('is_active', true)
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+            ->orderBy('order')->get();
+
+        $byProfil       = $baseQuery()->select('profil', DB::raw('COUNT(*) as count'))->groupBy('profil')->get();
+        $byAdequation   = $baseQuery()->select('adequation_theme', DB::raw('COUNT(*) as count'))->groupBy('adequation_theme')->get();
+        $byOrganisation = $baseQuery()->select('organisation_generale', DB::raw('COUNT(*) as count'))->groupBy('organisation_generale')->get();
+
+        $tsaStats = [];
+        foreach (['tsa_q1','tsa_q2','tsa_q3','tsa_q4','tsa_q5'] as $q) {
+            $tsaStats[$q] = $baseQuery()
+                ->select($q . ' as answer', DB::raw('COUNT(*) as count'))
+                ->whereNotNull($q)->groupBy($q)->get()
+                ->keyBy('answer')->map(fn($r) => $r->count);
+        }
+
+        $recent = $baseQuery()
+            ->select('id','full_name','profil','note_globale','adequation_theme','created_at')
+            ->orderByDesc('created_at')->limit(10)->get();
+
+        return compact('total','noteAvg','evalQuestions','byProfil','byAdequation','byOrganisation','tsaStats','recent');
+    }
+
+    // ── CRUD Quiz Questions ────────────────────────────────────────────────────
+
+    public function storeQuizQuestion(Request $request)
+    {
+        $request->validate(['text' => 'required|string|max:500', 'correct_answer' => 'required|in:vrai,faux,peut_etre', 'event_id' => 'nullable|exists:events,id']);
+        $max = \App\Models\QuizQuestion::where('quiz_slug', 'gsa-2026')->max('order') ?? 0;
+        \App\Models\QuizQuestion::create(['quiz_slug'=>'gsa-2026','text'=>$request->text,'correct_answer'=>$request->correct_answer,'order'=>$max+1,'is_active'=>true,'event_id'=>$request->event_id]);
+        return redirect()->route('admin.dashboard.view', ['tab'=>'quiz'])->with('success', 'Question ajoutée.');
+    }
+
+    public function updateQuizQuestion(Request $request, $id)
+    {
+        $request->validate(['text' => 'required|string|max:500', 'correct_answer' => 'required|in:vrai,faux,peut_etre', 'event_id' => 'nullable|exists:events,id']);
+        \App\Models\QuizQuestion::findOrFail($id)->update(['text'=>$request->text,'correct_answer'=>$request->correct_answer,'event_id'=>$request->event_id]);
+        return redirect()->route('admin.dashboard.view', ['tab'=>'quiz'])->with('success', 'Question mise à jour.');
+    }
+
+    public function deleteQuizQuestion($id)
+    {
+        \App\Models\QuizQuestion::findOrFail($id)->delete();
+        return redirect()->route('admin.dashboard.view', ['tab'=>'quiz'])->with('success', 'Question supprimée.');
+    }
+
+    // ── CRUD Evaluation Questions ──────────────────────────────────────────────
+
+    public function storeEvalQuestion(Request $request)
+    {
+        $request->validate(['text'=>'required|string|max:500','options'=>'required|array|min:2|max:6','options.*'=>'required|string|max:200','correct_answer'=>'nullable|string|max:5','event_id'=>'nullable|exists:events,id']);
+        $max = \App\Models\EvaluationQuestion::where('section','tsa')->max('order') ?? 0;
+        \App\Models\EvaluationQuestion::create(['section'=>'tsa','text'=>$request->text,'options'=>$request->options,'correct_answer'=>$request->correct_answer,'order'=>$max+1,'is_active'=>true,'event_id'=>$request->event_id]);
+        return redirect()->route('admin.dashboard.view', ['tab'=>'evaluation'])->with('success', 'Question ajoutée.');
+    }
+
+    public function updateEvalQuestion(Request $request, $id)
+    {
+        $request->validate(['text'=>'required|string|max:500','options'=>'required|array|min:2|max:6','options.*'=>'required|string|max:200','correct_answer'=>'nullable|string|max:5','event_id'=>'nullable|exists:events,id']);
+        \App\Models\EvaluationQuestion::findOrFail($id)->update(['text'=>$request->text,'options'=>$request->options,'correct_answer'=>$request->correct_answer,'event_id'=>$request->event_id]);
+        return redirect()->route('admin.dashboard.view', ['tab'=>'evaluation'])->with('success', 'Question mise à jour.');
+    }
+
+    public function deleteEvalQuestion($id)
+    {
+        \App\Models\EvaluationQuestion::findOrFail($id)->delete();
+        return redirect()->route('admin.dashboard.view', ['tab'=>'evaluation'])->with('success', 'Question supprimée.');
+    }
+
+    /**
+     * Sauvegarder la configuration d'un événement
+     */
+    public function saveConfiguration(Request $request)
+    {
+        $user = session('admin_user');
+        if (!$user) return redirect()->route('login');
+
+        $request->validate([
+            'configs'                        => 'required|array',
+            'configs.*.event_id'             => 'required|exists:events,id',
+            'configs.*.quiz_enabled'         => 'nullable|boolean',
+            'configs.*.evaluation_enabled'   => 'nullable|boolean',
+            'configs.*.certificate_enabled'  => 'nullable|boolean',
+        ]);
+
+        foreach ($request->configs as $cfg) {
+            \App\Models\EventConfig::updateOrCreate(
+                ['event_id' => $cfg['event_id']],
+                [
+                    'quiz_enabled'        => isset($cfg['quiz_enabled']),
+                    'evaluation_enabled'  => isset($cfg['evaluation_enabled']),
+                    'certificate_enabled' => isset($cfg['certificate_enabled']),
+                ]
+            );
+        }
+
+        return redirect()->route('admin.dashboard.view', ['tab' => 'configuration'])
+            ->with('success', 'Configuration sauvegardée.');
+    }
+    public function showEvaluation($id)
+    {
+        $user = session('admin_user');
+        if (!$user) return redirect()->route('login');
+
+        $evaluation = DB::table('colloque_evaluations')->where('id', $id)->first();
+        if (!$evaluation) abort(404);
+
+        $tsaQuestions = \App\Models\EvaluationQuestion::where('section', 'tsa')
+            ->where('is_active', true)->orderBy('order')->get();
+
+        return view('admin.evaluation-detail', compact('user', 'evaluation', 'tsaQuestions'));
     }
 
     /**

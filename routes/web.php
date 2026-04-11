@@ -45,6 +45,18 @@ Route::get('/admin/agents/{id}/details', [DashboardController::class, 'agentDeta
 Route::get('/admin/rapport/export', [DashboardController::class, 'exportRapport'])->name('admin.rapport.export');
 Route::post('/admin/tickets/{reference}/resend-mail', [DashboardController::class, 'resendTicketMail'])->name('admin.tickets.resend-mail');
 Route::get('/admin/relancer/print', [DashboardController::class, 'printUnpaidTickets'])->name('admin.relancer.print');
+
+// Quiz questions
+Route::post('/admin/quiz/questions', [DashboardController::class, 'storeQuizQuestion'])->name('admin.quiz.questions.store');
+Route::put('/admin/quiz/questions/{id}', [DashboardController::class, 'updateQuizQuestion'])->name('admin.quiz.questions.update');
+Route::delete('/admin/quiz/questions/{id}', [DashboardController::class, 'deleteQuizQuestion'])->name('admin.quiz.questions.delete');
+
+// Evaluation questions
+Route::post('/admin/evaluation/questions', [DashboardController::class, 'storeEvalQuestion'])->name('admin.eval.questions.store');
+Route::put('/admin/evaluation/questions/{id}', [DashboardController::class, 'updateEvalQuestion'])->name('admin.eval.questions.update');
+Route::delete('/admin/evaluation/questions/{id}', [DashboardController::class, 'deleteEvalQuestion'])->name('admin.eval.questions.delete');
+Route::get('/admin/evaluation/{id}', [DashboardController::class, 'showEvaluation'])->name('admin.evaluation.show');
+Route::post('/admin/configuration/save', [DashboardController::class, 'saveConfiguration'])->name('admin.configuration.save');
 Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
 Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
 
