@@ -8,36 +8,62 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // quiz_questions — ajouter les colonnes manquantes
+        // quiz_questions — ajouter uniquement les colonnes manquantes (event_id déjà présent)
         Schema::table('quiz_questions', function (Blueprint $table) {
-            $table->unsignedBigInteger('event_id')->nullable()->after('id');
-            $table->string('quiz_slug')->nullable()->after('event_id');
-            $table->integer('order')->default(0)->after('quiz_slug');
-            $table->text('text')->after('order');
-            $table->string('correct_answer')->nullable()->after('text');
-            $table->boolean('is_active')->default(true)->after('correct_answer');
+            if (!Schema::hasColumn('quiz_questions', 'quiz_slug')) {
+                $table->string('quiz_slug')->nullable()->after('event_id');
+            }
+            if (!Schema::hasColumn('quiz_questions', 'order')) {
+                $table->integer('order')->default(0);
+            }
+            if (!Schema::hasColumn('quiz_questions', 'text')) {
+                $table->text('text');
+            }
+            if (!Schema::hasColumn('quiz_questions', 'correct_answer')) {
+                $table->string('correct_answer')->nullable();
+            }
+            if (!Schema::hasColumn('quiz_questions', 'is_active')) {
+                $table->boolean('is_active')->default(true);
+            }
         });
 
-        // evaluation_questions — ajouter les colonnes manquantes
+        // evaluation_questions — ajouter uniquement les colonnes manquantes (event_id déjà présent)
         Schema::table('evaluation_questions', function (Blueprint $table) {
-            $table->unsignedBigInteger('event_id')->nullable()->after('id');
-            $table->string('section')->default('tsa')->after('event_id');
-            $table->integer('order')->default(0)->after('section');
-            $table->text('text')->after('order');
-            $table->json('options')->nullable()->after('text');
-            $table->string('correct_answer')->nullable()->after('options');
-            $table->boolean('is_active')->default(true)->after('correct_answer');
+            if (!Schema::hasColumn('evaluation_questions', 'section')) {
+                $table->string('section')->default('tsa');
+            }
+            if (!Schema::hasColumn('evaluation_questions', 'order')) {
+                $table->integer('order')->default(0);
+            }
+            if (!Schema::hasColumn('evaluation_questions', 'text')) {
+                $table->text('text');
+            }
+            if (!Schema::hasColumn('evaluation_questions', 'options')) {
+                $table->json('options')->nullable();
+            }
+            if (!Schema::hasColumn('evaluation_questions', 'correct_answer')) {
+                $table->string('correct_answer')->nullable();
+            }
+            if (!Schema::hasColumn('evaluation_questions', 'is_active')) {
+                $table->boolean('is_active')->default(true);
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('quiz_questions', function (Blueprint $table) {
-            $table->dropColumn(['event_id', 'quiz_slug', 'order', 'text', 'correct_answer', 'is_active']);
+            $table->dropColumn(array_filter(
+                ['quiz_slug', 'order', 'text', 'correct_answer', 'is_active'],
+                fn($col) => Schema::hasColumn('quiz_questions', $col)
+            ));
         });
 
         Schema::table('evaluation_questions', function (Blueprint $table) {
-            $table->dropColumn(['event_id', 'section', 'order', 'text', 'options', 'correct_answer', 'is_active']);
+            $table->dropColumn(array_filter(
+                ['section', 'order', 'text', 'options', 'correct_answer', 'is_active'],
+                fn($col) => Schema::hasColumn('evaluation_questions', $col)
+            ));
         });
     }
 };
