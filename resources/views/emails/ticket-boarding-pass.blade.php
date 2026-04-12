@@ -266,7 +266,10 @@
             <!-- Header -->
             <div class="pass-header">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://www.nlcrdc.org/wp-content/uploads/2023/02/LogoWeb2-1.png" alt="Never Limit Children" style="height: 50px; max-width: 200px;">
+                    <img src="{{ asset('logo-nlc-blanc.png') }}"
+                         alt="Never Limit Children"
+                         width="160"
+                         style="height: 60px; max-width: 160px; display: inline-block;">
                 </div>
                 <div class="pass-header-top">
                     <div class="reference-number">BILLET: {{ $ticket->reference }}</div>
@@ -278,36 +281,55 @@
                 <div class="event-category">{{ $price->label ?? $ticket->category }}</div>
             </div>
 
-            <!-- Route Section -->
-            <div class="route-section">
-                <div class="route-info">
-                    <div class="location">
-                        <div class="location-label">ÉVÉNEMENT</div>
-                        <div class="location-name">{{ $event->title }}</div>
-                    </div>
-                </div>
-                <div class="date-time">
-                    <span>📅 {{ \Carbon\Carbon::parse($event->date)->format('d/m/Y') }}</span>
-                    @if($event->time)
-                    <span>🕐 {{ $event->time }}</span>
-                    @endif
-                </div>
+            <!-- Détails de l'événement -->
+            <div style="padding: 20px 30px 0; background: #f8f9fa;">
+                <div style="font-size: 13px; font-weight: 700; color: #667eea; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Détails de l'Événement</div>
             </div>
 
             <!-- Details Grid -->
-            <div class="details-grid">
-                <div class="detail-item">
-                    <div class="detail-label">Lieu</div>
-                    <div class="detail-value" style="font-size: 14px;">{{ $event->location }}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Montant</div>
-                    <div class="detail-value">{{ number_format($ticket->amount, 0) }} {{ $ticket->currency }}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Catégorie</div>
-                    <div class="detail-value" style="font-size: 14px;">{{ $ticket->category }}</div>
-                </div>
+            <div class="details-grid" style="display:block; padding: 30px; background: white;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#333;">
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666; width:40%;">Événement :</td>
+                        <td style="padding:10px 0;">{{ $event->title }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Date :</td>
+                        <td style="padding:10px 0;">
+                            {{ \Carbon\Carbon::parse($event->date)->format('d/m/Y') }}
+                            @if($event->end_date && $event->end_date !== $event->date)
+                                - {{ \Carbon\Carbon::parse($event->end_date)->format('d/m/Y') }}
+                            @endif
+                        </td>
+                    </tr>
+                    @if($event->time)
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Horaire :</td>
+                        <td style="padding:10px 0;">
+                            {{ $event->time }}
+                            @if($event->end_time) - {{ $event->end_time }} @endif
+                        </td>
+                    </tr>
+                    @endif
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Lieu :</td>
+                        <td style="padding:10px 0;">{{ $event->location }}</td>
+                    </tr>
+                    @if($event->venue_details)
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Détails :</td>
+                        <td style="padding:10px 0;">{{ $event->venue_details }}</td>
+                    </tr>
+                    @endif
+                    <tr style="border-bottom:1px solid #e0e0e0;">
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Montant :</td>
+                        <td style="padding:10px 0; font-weight:700;">{{ number_format($ticket->amount, 0) }} {{ $ticket->currency }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 0; font-weight:bold; color:#666;">Catégorie :</td>
+                        <td style="padding:10px 0;">{{ $price->label ?? $ticket->category }}</td>
+                    </tr>
+                </table>
             </div>
 
             @if($ticket->payment_status === 'pending_cash')
@@ -321,10 +343,17 @@
             <!-- QR Code -->
             <div class="qr-section">
                 <div class="qr-code-wrapper">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($ticket->qr_data) }}" alt="QR Code">
+                    @php
+                        $qrContent = urlencode(json_encode(['reference' => $ticket->reference]));
+                        $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=000000&bgcolor=ffffff&data=' . $qrContent;
+                    @endphp
+                    <img src="{{ $qrUrl }}" alt="QR Code {{ $ticket->reference }}" width="200" height="200" style="display:block;width:200px;height:200px;">
                 </div>
                 <div class="qr-instruction">
                     Présentez ce QR code à l'entrée
+                </div>
+                <div style="margin-top: 12px; font-size: 16px; font-weight: 700; color: #333; letter-spacing: 2px;">
+                    {{ $ticket->reference }}
                 </div>
             </div>
 

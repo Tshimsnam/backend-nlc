@@ -35,18 +35,25 @@ class QRScanController extends Controller
 
             $ticket = null;
 
-            // Méthode 1: Scan via QR code (données JSON)
+            // Méthode 1: Scan via QR code (données JSON ou référence brute)
             if ($request->filled('qr_data')) {
-                $qrData = json_decode($request->qr_data, true);
-                
-                if (!$qrData || !isset($qrData['reference'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'QR code invalide',
-                    ], 400);
+                $rawData = $request->qr_data;
+                $qrData = json_decode($rawData, true);
+
+                if ($qrData && isset($qrData['reference'])) {
+                    // Format JSON : {"reference": "TKT-xxx"}
+                    $ticket = Ticket::where('reference', $qrData['reference'])->first();
+                } else {
+                    // Format brute : juste la référence en string
+                    $ticket = Ticket::where('reference', trim($rawData))->first();
                 }
 
-                $ticket = Ticket::where('reference', $qrData['reference'])->first();
+                if (!$ticket) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'QR code invalide ou billet introuvable',
+                    ], 400);
+                }
             }
             // Méthode 2: Recherche par référence
             elseif ($request->filled('reference')) {

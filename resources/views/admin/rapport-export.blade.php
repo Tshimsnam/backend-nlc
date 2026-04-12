@@ -349,7 +349,7 @@
 
     <div class="pdf-page-footer">
         <span>NLC Events — Rapport d'activité GSA</span>
-        <span>Page 1 / 3</span>
+        <span>Page 1 / 4</span>
     </div>
 </div>
 
@@ -414,7 +414,7 @@
 
     <div class="pdf-page-footer">
         <span>NLC Events — Rapport d'activité GSA</span>
-        <span>Page 2 / 3</span>
+        <span>Page 2 / 4</span>
     </div>
 </div>
 
@@ -487,7 +487,131 @@
 
     <div class="pdf-page-footer">
         <span>NLC Events — Rapport d'activité GSA</span>
-        <span>Page 3 / 3</span>
+        <span>Page 3 / 4</span>
+    </div>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- PAGE 4 : Billets par type de billet                       --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+<div class="pdf-page" id="page-4">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; padding-bottom:16px; border-bottom:2px solid #f3f4f6;">
+        <div>
+            <p style="font-size:9px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:#a855f7; margin-bottom:2px;">NLC Events — GSA</p>
+            <p style="font-size:18px; font-weight:900; color:#1e1b4b;">Billets par type de billet</p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-size:9px; color:#9ca3af;">{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</p>
+            @if($reportData['filteredEvent'])
+            <p style="font-size:9px; font-weight:600; color:#7c3aed;">{{ $reportData['filteredEvent']->title }}</p>
+            @endif
+        </div>
+    </div>
+
+    {{-- Section : Par catégorie de participant --}}
+    <p class="rp-section-title" style="margin-bottom:1rem;">Par catégorie de participant</p>
+
+    @php
+        $catLabels = ['teacher' => 'Enseignant', 'student_1day' => 'Étudiant (1 jour)', 'student_2days' => 'Étudiant (2 jours)', 'doctor' => 'Médecin', 'parent' => 'Parent', 'etudiant' => 'Étudiant', 'enseignant' => 'Enseignant', 'medecin' => 'Médecin'];
+        $totalCat = $reportData['ticketsByCategory']->sum('total') ?: 1;
+    @endphp
+
+    <div style="position:relative; width:100%; height:160px; margin-bottom:1.5rem;"><canvas id="chartCategories"></canvas></div>
+
+    <table class="w-full text-xs mb-8">
+        <thead>
+            <tr class="rp-grad-soft">
+                <th class="px-3 py-2 text-left font-bold uppercase tracking-wide text-purple-700 rounded-l-lg">Catégorie</th>
+                <th class="px-3 py-2 text-right font-bold uppercase tracking-wide text-purple-700">Total créés</th>
+                <th class="px-3 py-2 text-right font-bold uppercase tracking-wide text-purple-700">Validés</th>
+                <th class="px-3 py-2 text-right font-bold uppercase tracking-wide text-purple-700">Taux</th>
+                <th class="px-3 py-2 text-right font-bold uppercase tracking-wide text-purple-700">Part</th>
+                <th class="px-3 py-2 text-right font-bold uppercase tracking-wide text-purple-700 rounded-r-lg">Revenus (USD)</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-purple-50">
+            @forelse($reportData['ticketsByCategory'] as $cat)
+            @php
+                $catRate = $cat->total > 0 ? ($cat->validated / $cat->total) * 100 : 0;
+                $catPart = ($cat->total / $totalCat) * 100;
+                $catLabel = $catLabels[$cat->category] ?? ucfirst($cat->category);
+            @endphp
+            <tr>
+                <td class="px-3 py-2 font-semibold text-gray-800">{{ $catLabel }}</td>
+                <td class="px-3 py-2 text-right font-bold text-gray-700">{{ $cat->total }}</td>
+                <td class="px-3 py-2 text-right font-bold text-purple-700">{{ $cat->validated }}</td>
+                <td class="px-3 py-2 text-right">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold {{ $catRate >= 50 ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700' }}">
+                        {{ number_format($catRate, 1) }} %
+                    </span>
+                </td>
+                <td class="px-3 py-2 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <div class="rp-bar-bg w-16"><div class="rp-bar-fill" style="width:{{ min($catPart,100) }}%"></div></div>
+                        <span class="text-gray-500 w-10 text-right">{{ number_format($catPart, 1) }}%</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 text-right font-bold text-gray-800">{{ number_format($cat->revenue, 2) }} <span class="text-gray-400">USD</span></td>
+            </tr>
+            @empty
+            <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 italic">Aucune donnée sur cette période.</td></tr>
+            @endforelse
+        </tbody>
+        @if($reportData['ticketsByCategory']->isNotEmpty())
+        <tfoot>
+            <tr class="rp-grad-soft font-bold">
+                <td class="px-3 py-2 text-purple-700 rounded-l-lg">TOTAL</td>
+                <td class="px-3 py-2 text-right text-gray-800">{{ $reportData['ticketsByCategory']->sum('total') }}</td>
+                <td class="px-3 py-2 text-right text-purple-700">{{ $reportData['ticketsByCategory']->sum('validated') }}</td>
+                <td class="px-3 py-2 text-right">
+                    @php $globalRate = $reportData['ticketsByCategory']->sum('total') > 0 ? ($reportData['ticketsByCategory']->sum('validated') / $reportData['ticketsByCategory']->sum('total')) * 100 : 0; @endphp
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">{{ number_format($globalRate, 1) }} %</span>
+                </td>
+                <td class="px-3 py-2 text-right text-gray-500">100%</td>
+                <td class="px-3 py-2 text-right text-gray-800 rounded-r-lg">{{ number_format($reportData['ticketsByCategory']->sum('revenue'), 2) }} <span class="text-gray-400">USD</span></td>
+            </tr>
+        </tfoot>
+        @endif
+    </table>
+
+    {{-- Section : Par mode de paiement --}}
+    <p class="rp-section-title" style="margin-bottom:1rem;">Par mode de paiement</p>
+
+    @php
+        $payLabels = ['cash' => 'Caisse', 'maxicash' => 'MaxiCash', 'mpesa' => 'M-Pesa', 'orange_money' => 'Orange Money'];
+        $totalPay = $reportData['ticketsByPayType']->sum('total') ?: 1;
+    @endphp
+
+    <div class="grid grid-cols-2 gap-4">
+        @forelse($reportData['ticketsByPayType'] as $pay)
+        @php
+            $payRate = $pay->total > 0 ? ($pay->validated / $pay->total) * 100 : 0;
+            $payPart = ($pay->total / $totalPay) * 100;
+            $payLabel = $payLabels[$pay->pay_type] ?? ucfirst($pay->pay_type);
+        @endphp
+        <div class="rp-grad-soft rounded-xl p-4 border border-purple-100">
+            <div class="flex items-center justify-between mb-3">
+                <p class="font-bold text-gray-800 text-sm">{{ $payLabel }}</p>
+                <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">{{ number_format($payPart, 1) }}%</span>
+            </div>
+            <div class="space-y-1 text-xs">
+                <div class="flex justify-between"><span class="text-gray-500">Total créés</span><span class="font-bold">{{ $pay->total }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Validés</span><span class="font-bold text-purple-700">{{ $pay->validated }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Revenus</span><span class="font-bold">{{ number_format($pay->revenue, 2) }} USD</span></div>
+                <div class="pt-1">
+                    <div class="flex justify-between text-gray-400 mb-1"><span>Taux validation</span><span class="font-bold text-purple-700">{{ number_format($payRate, 1) }}%</span></div>
+                    <div class="rp-bar-bg"><div class="rp-bar-fill" style="width:{{ min($payRate,100) }}%"></div></div>
+                </div>
+            </div>
+        </div>
+        @empty
+        <div class="col-span-2 text-center text-gray-400 italic py-4">Aucune donnée.</div>
+        @endforelse
+    </div>
+
+    <div class="pdf-page-footer">
+        <span>NLC Events — Rapport d'activité GSA</span>
+        <span>Page 4 / 4</span>
     </div>
 </div>
 
@@ -549,7 +673,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     @endif
 
-    // Barres événements
+    // Barres catégories de billets
+    @if($reportData['ticketsByCategory']->isNotEmpty())
+    const catLabelsMap = {teacher:'Enseignant', student_1day:'Étudiant 1j', student_2days:'Étudiant 2j', doctor:'Médecin', parent:'Parent', etudiant:'Étudiant', enseignant:'Enseignant', medecin:'Médecin'};
+    const catKeys   = {!! json_encode($reportData['ticketsByCategory']->pluck('category')->toArray()) !!};
+    const catLabels = catKeys.map(k => catLabelsMap[k] || k);
+    const catTotal  = {!! json_encode($reportData['ticketsByCategory']->pluck('total')->toArray()) !!};
+    const catValid  = {!! json_encode($reportData['ticketsByCategory']->pluck('validated')->toArray()) !!};
+    const catRev    = {!! json_encode($reportData['ticketsByCategory']->pluck('revenue')->map(fn($v)=>round((float)$v,2))->toArray()) !!};
+    new Chart(document.getElementById('chartCategories'), {
+        type: 'bar',
+        data: { labels: catLabels, datasets: [
+            { label: 'Total créés', data: catTotal, backgroundColor: light,  borderRadius: 6 },
+            { label: 'Validés',     data: catValid, backgroundColor: purple, borderRadius: 6 },
+            { label: 'Revenus (USD)', data: catRev, type: 'line', borderColor: pink, backgroundColor: 'transparent',
+              pointBackgroundColor: pink, pointRadius: 5, tension: .4, yAxisID: 'yRevCat' }
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, interaction: {mode:'index',intersect:false},
+            plugins: { legend: {position:'top'} },
+            scales: { y: {beginAtZero:true,grid:{color:'#f3f4f6'},ticks:{color:'#9ca3af'}},
+                      yRevCat: {beginAtZero:true,position:'right',grid:{drawOnChartArea:false},ticks:{color:'#ec4899',callback:v=>v+' $'}},
+                      x: {grid:{display:false},ticks:{color:'#6b7280'}} } }
+    });
+    @endif
     @if($reportData['eventDetails']->isNotEmpty())
     const evLabels  = {!! json_encode($reportData['eventDetails']->pluck('title')->toArray()) !!};
     const evCreated = {!! json_encode($reportData['eventDetails']->pluck('tickets_created')->toArray()) !!};
@@ -583,7 +729,7 @@ async function exportPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     // Toutes les pages dans l'ordre : cover + page-1 + page-2 + page-3
-    const pages = ['page-cover', 'page-1', 'page-2', 'page-3'];
+    const pages = ['page-cover', 'page-1', 'page-2', 'page-3', 'page-4'];
     const W = 210;
 
     for (let i = 0; i < pages.length; i++) {
