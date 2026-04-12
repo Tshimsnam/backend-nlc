@@ -453,13 +453,29 @@ class DashboardController extends Controller
         // Nom de l'événement filtré
         $filteredEvent = $eventId ? Event::find($eventId) : null;
 
+        // --- Billets par type/catégorie de prix ---
+        $ticketsByCategory = Ticket::select('category', DB::raw('COUNT(*) as total'), DB::raw('SUM(CASE WHEN payment_status = "completed" THEN 1 ELSE 0 END) as validated'), DB::raw('SUM(CASE WHEN payment_status = "completed" THEN amount ELSE 0 END) as revenue'))
+            ->whereBetween('created_at', [$from, $to])
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->get();
+
+        // Billets par mode de paiement
+        $ticketsByPayType = Ticket::select('pay_type', DB::raw('COUNT(*) as total'), DB::raw('SUM(CASE WHEN payment_status = "completed" THEN 1 ELSE 0 END) as validated'), DB::raw('SUM(CASE WHEN payment_status = "completed" THEN amount ELSE 0 END) as revenue'))
+            ->whereBetween('created_at', [$from, $to])
+            ->when($eventId, fn($q) => $q->where('event_id', $eventId))
+            ->groupBy('pay_type')
+            ->orderByDesc('total')
+            ->get();
+
         return compact(
             'totalTickets', 'confirmed', 'pending', 'ticketScans',
             'physicalTotal', 'physicalValidated', 'physicalRevenue',
             'onlineTotal', 'onlineValidated', 'onlineRevenue',
             'agentActivity',
             'eventScans', 'uniqueScanned', 'totalRevenue', 'eventDetails',
-            'filteredEvent'
+            'filteredEvent', 'ticketsByCategory', 'ticketsByPayType'
         );
     }
 
@@ -613,8 +629,8 @@ class DashboardController extends Controller
             'validated_by' => $user->id
         ]);
 
-        return redirect()->route('admin.dashboard.view')
-            ->with('success', 'Ticket validé avec succès!');
+        return redirect()->route('admin.dashboard.view', ['tab' => 'relancer'])
+            ->with('success', 'Ticket validé avec succès — ' . $ticket->full_name . ' (' . $ticket->reference . ')');
     }
 
     /**
@@ -962,6 +978,126 @@ class DashboardController extends Controller
         
         return redirect()->route('admin.dashboard.view', ['tab' => 'events'])
             ->with('success', 'Tarif supprimé avec succès!');
+    }
+
+    /**
+     * Page d'impression de la liste des évaluations
+     */
+    public function printEvaluationList(Request $request)
+    {
+        $user = session('admin_user');
+        if (!$user) return redirect()->route('login');
+
+        $query = DB::table('colloque_evaluations')->orderBy('created_at', 'desc');
+
+        if ($request->eval_event_id) {
+            $query->where('event_id', $request->eval_event_id);
+        }
+
+        $evaluations = $query->get();
+        $event = $request->eval_event_id ? Event::find($request->eval_event_id) : null;
+
+        $stats = [
+            'total'   => $evaluations->count(),
+            'noteAvg' => round($evaluations->whereNotNull('note_globale')->avg('note_globale'), 1),
+        ];
+
+        return view('admin.print.evaluations-list', compact('evaluations', 'stats', 'event'));
+    }
+
+    /**
+     * Page d'impression de la liste des billets
+     */
+    public function printTicketList(Request $request)
+    {
+        $user = session('admin_user');
+        if (!$user) return redirect()->route('login');
+
+        $query = Ticket::with(['event', 'price']);
+
+        $status = $request->get('tickets_status', 'completed');
+        if ($status !== 'all') {
+            $query->where('payment_status', $status);
+        }
+
+        if ($request->tickets_search) {
+            $search = $request->tickets_search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('full_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->tickets_pay_type && $request->tickets_pay_type !== 'all') {
+            $query->where('pay_type', $request->tickets_pay_type);
+        }
+
+        $tickets = $query->orderBy('created_at', 'desc')->get();
+
+        $stats = [
+            'total'    => $tickets->count(),
+            'revenue'  => $tickets->where('payment_status', 'completed')->sum('amount'),
+            'currency' => $tickets->first()?->currency ?? 'USD',
+        ];
+
+        return view('admin.print.tickets-list', compact('tickets', 'stats', 'status'));
+    }
+
+    /**
+     * Page d'impression d'un billet
+     */
+    public function printTicket(string $reference)
+    {
+        $user = session('admin_user');
+        if (!$user) return redirect()->route('login');
+
+        $ticket = Ticket::with(['event', 'price'])->where('reference', $reference)->firstOrFail();
+
+        return view('admin.print.ticket', compact('ticket'));
+    }
+
+    /**
+     * Renvoyer le billet par email (AJAX)
+     */
+    public function resendTicketMailAjax(string $reference): JsonResponse
+    {
+        $user = session('admin_user');
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Non authentifié'], 401);
+        }
+
+        $ticket = Ticket::with(['event', 'price'])->where('reference', $reference)->first();
+
+        if (!$ticket) {
+            return response()->json(['success' => false, 'message' => 'Billet introuvable'], 404);
+        }
+
+        if ($ticket->payment_status !== 'completed') {
+            return response()->json(['success' => false, 'message' => 'Seuls les billets validés peuvent être renvoyés'], 400);
+        }
+
+        if (!$ticket->email) {
+            return response()->json(['success' => false, 'message' => 'Ce billet n\'a pas d\'adresse email'], 400);
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($ticket->email)
+                ->send(new \App\Mail\TicketBoardingPassMail($ticket));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Billet envoyé à {$ticket->email}",
+                'email' => $ticket->email,
+                'name' => $ticket->full_name,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Échec de l'envoi à {$ticket->email} : " . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

@@ -44,6 +44,10 @@ Route::post('/admin/agents/create', [DashboardController::class, 'createAgent'])
 Route::get('/admin/agents/{id}/details', [DashboardController::class, 'agentDetails'])->name('admin.agents.details');
 Route::get('/admin/rapport/export', [DashboardController::class, 'exportRapport'])->name('admin.rapport.export');
 Route::post('/admin/tickets/{reference}/resend-mail', [DashboardController::class, 'resendTicketMail'])->name('admin.tickets.resend-mail');
+Route::post('/admin/tickets/{reference}/resend-mail-ajax', [DashboardController::class, 'resendTicketMailAjax'])->name('admin.tickets.resend-mail-ajax');
+Route::get('/admin/tickets/{reference}/print', [DashboardController::class, 'printTicket'])->name('admin.tickets.print');
+Route::get('/admin/tickets/print-list', [DashboardController::class, 'printTicketList'])->name('admin.tickets.print-list');
+Route::get('/admin/evaluations/print-list', [DashboardController::class, 'printEvaluationList'])->name('admin.evaluations.print-list');
 Route::get('/admin/relancer/print', [DashboardController::class, 'printUnpaidTickets'])->name('admin.relancer.print');
 
 // Quiz questions
