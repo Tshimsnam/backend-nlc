@@ -30,6 +30,30 @@ use App\Http\Controllers\API\QRScanController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\API\PhysicalTicketController;
 
+use App\Http\Controllers\API\QuizController;
+use App\Http\Controllers\API\ColloqueEvaluationController;
+
+// --- Quiz anonyme (GSA 2026)
+Route::post('/quiz/submit', [QuizController::class, 'submit']);
+Route::get('/quiz/stats', [QuizController::class, 'stats']);
+Route::get('/quiz/questions', [QuizController::class, 'questions']);
+
+// --- Évaluation colloque GSA 2026
+Route::post('/colloque/evaluate', [ColloqueEvaluationController::class, 'store']);
+Route::get('/colloque/questions', [ColloqueEvaluationController::class, 'questions']);
+Route::get('/colloque/stats', [ColloqueEvaluationController::class, 'stats']);
+
+// --- Configuration événement (lecture publique)
+Route::get('/events/{eventId}/config', function ($eventId) {
+    $config = \App\Models\EventConfig::where('event_id', $eventId)->first();
+    return response()->json([
+        'event_id'            => (int) $eventId,
+        'quiz_enabled'        => $config?->quiz_enabled        ?? false,
+        'evaluation_enabled'  => $config?->evaluation_enabled  ?? false,
+        'certificate_enabled' => $config?->certificate_enabled ?? true,
+    ]);
+});
+
 // --- Événements (lecture publique)
 Route::get('/events', [APIEventController::class, 'index']);
 Route::get('/events/{event:slug}', [APIEventController::class, 'show'])->name('api.events.show.slug');

@@ -147,7 +147,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <img src="https://www.nlcrdc.org/wp-content/uploads/2023/02/LogoWeb2-1.png" alt="Never Limit Children" style="height: 50px; max-width: 200px; margin-bottom: 15px;">
+            <img src="{{ asset('logo-nlc-blanc.png') }}" alt="Never Limit Children" style="height: 60px; max-width: 220px; margin-bottom: 15px; display: inline-block;">
             <h1>🎫 Votre Billet</h1>
             <p>{{ $event->title }}</p>
         </div>
@@ -253,7 +253,10 @@
                 <h3>📱 Votre QR Code</h3>
                 <p>Présentez ce QR code à l'entrée de l'événement</p>
                 <div class="qr-code">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($ticket->qr_data) }}" alt="QR Code" style="width: 200px; height: 200px;">
+                    @php
+                        $qrPayload = urlencode(json_encode(['reference' => $ticket->reference]));
+                    @endphp
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ $qrPayload }}" alt="QR Code" style="width: 200px; height: 200px;">
                 </div>
                 <div class="reference">{{ $ticket->reference }}</div>
             </div>
@@ -288,6 +291,9 @@
             </p>
             <p style="font-size: 12px; color: #999; margin-top: 15px;">
                 Cet email a été envoyé automatiquement. Merci de ne pas y répondre directement.
+            </p>
+            <p style="font-size: 11px; color: #bbb; margin-top: 10px;">
+                ✅ Développé par <a href="https://www.franckkapuya.com" style="color: #667eea;">Franck Kapuya</a> – <a href="https://www.franckkapuya.com" style="color: #667eea;">www.franckkapuya.com</a>
             </p>
         </div>
     </div>

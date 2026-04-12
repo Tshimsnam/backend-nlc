@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Le Grand Salon de l'Autiste - 15-16 Avril 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>

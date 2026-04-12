@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Billets à relancer — NLC Events</title>
+    <title>Liste des évaluations — NLC Events</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,12 +61,6 @@
     Imprimer
 </button>
 
-@php
-    $total = $unpaidTickets->total();
-    $montant = $unpaidTickets->sum('amount');
-    $currency = $unpaidTickets->first()?->currency ?? 'USD';
-@endphp
-
 {{-- ═══════════════════════════════════════════════════════════ --}}
 {{-- PAGE DE GARDE                                              --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
@@ -120,39 +114,41 @@
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:460px;padding-top:40px;">
             <div style="margin-bottom:24px;">
                 <p style="font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#7c3aed;margin-bottom:6px;">
-                    NLC Events — Suivi des paiements
+                    NLC Events — Colloque GSA
                 </p>
                 <h1 style="font-size:48px;font-weight:900;color:#1e1b4b;line-height:1.0;letter-spacing:-.02em;">
-                    BILLETS À
+                    LISTE DES
                 </h1>
                 <h2 style="font-size:38px;font-weight:300;color:#7c3aed;line-height:1.0;letter-spacing:-.01em;margin-bottom:16px;">
-                    RELANCER
+                    ÉVALUATIONS
                 </h2>
                 <p style="font-size:20px;font-weight:800;color:#ef4444;letter-spacing:.02em;">
                     Généré le {{ now()->format('d/m/Y à H:i') }}
                 </p>
             </div>
 
-            @if(request('unpaid_search'))
-            <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
-                Filtre actif : <span style="color:#7c3aed;font-weight:600;">"{{ request('unpaid_search') }}"</span>
+            @if($event)
+            <p style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:20px;">
+                Événement : <span style="color:#7c3aed;">{{ $event->title }}</span>
             </p>
             @endif
 
             <p style="font-size:11px;color:#6b7280;line-height:1.7;margin-bottom:32px;max-width:380px;">
-                Cette liste présente les participants ayant généré un billet en ligne sans finaliser leur paiement. Ils sont à contacter pour relance.
+                Cette liste présente l'ensemble des évaluations soumises par les participants du colloque sur l'autisme organisé par Never Limit Children.
             </p>
 
             {{-- Stats --}}
             <div style="display:flex;gap:24px;">
                 <div style="background:linear-gradient(135deg,#3b0764,#6d28d9);border-radius:12px;padding:16px 20px;color:white;min-width:120px;text-align:center;">
-                    <p style="font-size:36px;font-weight:900;">{{ $total }}</p>
-                    <p style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#c4b5fd;margin-top:2px;">Billets</p>
+                    <p style="font-size:36px;font-weight:900;">{{ $stats['total'] }}</p>
+                    <p style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#c4b5fd;margin-top:2px;">Évaluations</p>
                 </div>
-                <div style="background:linear-gradient(135deg,#ef4444,#f97316);border-radius:12px;padding:16px 20px;color:white;min-width:160px;text-align:center;">
-                    <p style="font-size:28px;font-weight:900;">{{ number_format($montant, 0) }}</p>
-                    <p style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#fde68a;margin-top:2px;">{{ $currency }} en attente</p>
+                @if($stats['noteAvg'])
+                <div style="background:linear-gradient(135deg,#a855f7,#ec4899);border-radius:12px;padding:16px 20px;color:white;min-width:140px;text-align:center;">
+                    <p style="font-size:32px;font-weight:900;">{{ $stats['noteAvg'] }}<span style="font-size:16px;font-weight:400;">/10</span></p>
+                    <p style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#fce7f3;margin-top:2px;">Note moyenne</p>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -165,21 +161,21 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- PAGE(S) : Tableau des billets à relancer                   --}}
+{{-- PAGE(S) : Tableau des évaluations                         --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
 <div class="pdf-page">
 
     {{-- Header --}}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid #f3f4f6;">
         <div>
-            <p style="font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#a855f7;margin-bottom:2px;">NLC Events — Suivi des paiements</p>
-            <p style="font-size:18px;font-weight:900;color:#1e1b4b;">Billets à relancer</p>
+            <p style="font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#a855f7;margin-bottom:2px;">NLC Events — Colloque GSA</p>
+            <p style="font-size:18px;font-weight:900;color:#1e1b4b;">Liste des évaluations</p>
         </div>
         <div style="text-align:right;">
             <p style="font-size:9px;color:#9ca3af;">{{ now()->format('d/m/Y à H:i') }}</p>
             <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:10px;font-weight:700;
-                background:linear-gradient(135deg,#ef4444,#f97316);color:white;">
-                {{ $total }} billet(s) en attente
+                background:linear-gradient(135deg,#6d28d9,#ec4899);color:white;">
+                {{ $stats['total'] }} évaluation(s)
             </span>
         </div>
     </div>
@@ -189,48 +185,54 @@
         <thead>
             <tr style="background:linear-gradient(135deg,#f5f3ff,#fdf4ff);">
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">#</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Nom complet</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Téléphone</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Email</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Événement</th>
-                <th style="padding:10px 8px;text-align:right;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Montant</th>
+                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Nom</th>
+                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Profil</th>
+                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Adéquation thème</th>
+                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Organisation</th>
+                <th style="padding:10px 8px;text-align:center;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Note</th>
                 <th style="padding:10px 8px;text-align:right;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Date</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($unpaidTickets as $index => $ticket)
-            <tr style="{{ $index % 2 === 0 ? 'background:#fafafa;' : 'background:white;' }}border-bottom:1px solid #f3f4f6;">
-                <td style="padding:8px;color:#9ca3af;font-weight:600;">
-                    {{ ($unpaidTickets->currentPage() - 1) * $unpaidTickets->perPage() + $index + 1 }}
+            @forelse($evaluations as $i => $ev)
+            <tr style="{{ $i % 2 === 0 ? 'background:#fafafa;' : 'background:white;' }}border-bottom:1px solid #f3f4f6;">
+                <td style="padding:8px;color:#9ca3af;font-weight:600;">{{ $i + 1 }}</td>
+                <td style="padding:8px;font-weight:600;color:#1f2937;">{{ $ev->full_name ?? '—' }}</td>
+                <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ev->profil ?? '—' }}</td>
+                <td style="padding:8px;color:#374151;font-size:10px;">
+                    @php $adeqLabels = ['tres_adequat'=>'Très adéquat','adequat'=>'Adéquat','neutre'=>'Neutre','pas_vraiment'=>'Pas vraiment','pas_du_tout'=>'Pas du tout']; @endphp
+                    {{ $adeqLabels[$ev->adequation_theme] ?? ($ev->adequation_theme ?? '—') }}
                 </td>
-                <td style="padding:8px;">
-                    <div style="font-weight:600;color:#1f2937;">{{ $ticket->full_name }}</div>
-                    <div style="font-size:9px;color:#9ca3af;font-family:monospace;margin-top:2px;">{{ $ticket->reference }}</div>
-                </td>
-                <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->phone ?? '—' }}</td>
-                <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->email ?? '—' }}</td>
-                <td style="padding:8px;color:#374151;font-size:10px;">{{ $ticket->event->title ?? '—' }}</td>
-                <td style="padding:8px;text-align:right;font-weight:700;color:#ef4444;">
-                    {{ number_format($ticket->amount, 0) }} <span style="color:#9ca3af;font-weight:400;">{{ $ticket->currency }}</span>
+                <td style="padding:8px;color:#374151;font-size:10px;">{{ $ev->organisation_generale ?? '—' }}</td>
+                <td style="padding:8px;text-align:center;">
+                    @if($ev->note_globale)
+                        @php $note = $ev->note_globale; @endphp
+                        <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:9px;font-weight:700;
+                            {{ $note >= 7 ? 'background:#d1fae5;color:#065f46;' : ($note >= 5 ? 'background:#fef3c7;color:#92400e;' : 'background:#fee2e2;color:#991b1b;') }}">
+                            {{ $note }}/10
+                        </span>
+                    @else
+                        <span style="color:#d1d5db;">—</span>
+                    @endif
                 </td>
                 <td style="padding:8px;text-align:right;color:#9ca3af;font-size:10px;">
-                    {{ $ticket->created_at->format('d/m/Y') }}
+                    {{ \Carbon\Carbon::parse($ev->created_at)->format('d/m/Y H:i') }}
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="7" style="padding:32px;text-align:center;color:#9ca3af;font-style:italic;">Aucun billet non payé trouvé.</td>
+                <td colspan="7" style="padding:32px;text-align:center;color:#9ca3af;font-style:italic;">Aucune évaluation trouvée.</td>
             </tr>
             @endforelse
         </tbody>
-        @if($unpaidTickets->isNotEmpty())
+        @if($evaluations->isNotEmpty())
         <tfoot>
             <tr style="background:linear-gradient(135deg,#f5f3ff,#fdf4ff);border-top:2px solid #ede9fe;">
-                <td colspan="5" style="padding:10px 8px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;font-size:10px;">TOTAL EN ATTENTE</td>
-                <td style="padding:10px 8px;text-align:right;font-weight:900;color:#ef4444;font-size:13px;">
-                    {{ number_format($montant, 0) }} <span style="color:#9ca3af;font-weight:400;font-size:10px;">{{ $currency }}</span>
+                <td colspan="5" style="padding:10px 8px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;font-size:10px;">TOTAL</td>
+                <td style="padding:10px 8px;text-align:center;font-weight:900;color:#1e1b4b;">
+                    @if($stats['noteAvg']) <span style="font-size:12px;">{{ $stats['noteAvg'] }}/10</span> @endif
                 </td>
-                <td style="padding:10px 8px;text-align:right;font-weight:700;color:#7c3aed;">{{ $total }}</td>
+                <td style="padding:10px 8px;text-align:right;font-weight:700;color:#7c3aed;">{{ $stats['total'] }}</td>
             </tr>
         </tfoot>
         @endif
@@ -238,7 +240,7 @@
 
     {{-- Footer --}}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #f3f4f6;display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;">
-        <span>NLC Events — Billets à relancer</span>
+        <span>NLC Events — Liste des évaluations</span>
         <span>{{ now()->format('d/m/Y à H:i') }}</span>
     </div>
 </div>
