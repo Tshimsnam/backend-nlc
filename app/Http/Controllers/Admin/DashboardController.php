@@ -228,7 +228,7 @@ class DashboardController extends Controller
             ->select('question_id', 'answer', DB::raw('COUNT(*) as count'))
             ->groupBy('question_id', 'answer')->orderBy('question_id')->get()
             ->groupBy('question_id')
-            ->map(fn($rows) => $rows->keyBy('answer')->map(fn($r) => $r->count));
+            ->map(fn($rows) => $rows->keyBy('answer')->map(fn($r) => (int) $r->count));
 
         $recentResponses = (clone $query)
             ->select('session_token', DB::raw('MIN(created_at) as submitted_at'))
@@ -262,7 +262,7 @@ class DashboardController extends Controller
             $tsaStats[$q] = $baseQuery()
                 ->select($q . ' as answer', DB::raw('COUNT(*) as count'))
                 ->whereNotNull($q)->groupBy($q)->get()
-                ->keyBy('answer')->map(fn($r) => $r->count);
+                ->keyBy('answer')->map(fn($r) => (int) $r->count);
         }
 
         $recent = $baseQuery()
