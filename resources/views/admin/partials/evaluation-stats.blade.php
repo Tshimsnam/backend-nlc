@@ -228,8 +228,8 @@
                         <div class="flex gap-2 items-end h-10">
                             @foreach($q->options as $i => $opt)
                             @php
-                                $letter = $letters[$i] ?? chr(65+$i);
-                                $cnt    = $data[$letter] ?? 0;
+                                $letter = $letters[$i] ?? (is_int($i) ? chr(65+$i) : $i);
+                                $cnt    = (int) ($data[$letter] ?? 0);
                                 $pct    = $total > 0 ? round($cnt/$total*100) : 0;
                                 $color  = $barColors[$letter] ?? 'bg-gray-300';
                             @endphp
@@ -288,7 +288,7 @@
 
                     <div id="edit-options-{{ $q->id }}" class="space-y-2 mb-3">
                         @foreach($q->options as $i => $opt)
-                        @php $letter = $letters[$i] ?? chr(65+$i); @endphp
+                        @php $letter = $letters[$i] ?? (is_int($i) ? chr(65+$i) : $i); @endphp
                         <div class="flex items-center gap-2 option-row">
                             <label class="flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                                 <input type="radio" name="correct_answer" value="{{ $letter }}"
