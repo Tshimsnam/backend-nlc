@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
         $this->call(ChildSeeder::class);
         $this->call(ProgramSeeder::class);
         $this->call(EventSeeder::class);
+        $this->call(QuizGSA2026Seeder::class);
+        $this->call(EvaluationSection9Seeder::class);
 
         // (Optionnel) autres seeders, ex : faker users de test
         // $this->call(AnotherSeeder::class);

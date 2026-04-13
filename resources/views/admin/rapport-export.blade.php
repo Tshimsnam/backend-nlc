@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rapport GSA — {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Charger Chart.js — essaie jsdelivr, fallback sur cdnjs
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+            s.onerror = function() {
+                var s2 = document.createElement('script');
+                s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #1e1b4b; font-family: system-ui, sans-serif; }
@@ -114,19 +124,40 @@
             position: absolute; left: 0; right: 0; height: 3px;
             background: linear-gradient(90deg, transparent, #a855f7, #ec4899, transparent);
         }
+
+        /* ── Impression ── */
+        @media print {
+            body { background: white !important; }
+            #btn-export, #progress-bar, #print-toolbar { display: none !important; }
+            .pdf-page, .pdf-page-cover {
+                width: 100% !important;
+                margin: 0 !important;
+                page-break-after: always;
+                break-after: page;
+                box-shadow: none !important;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+        }
     </style>
 </head>
 <body>
 
 <div id="progress-bar"></div>
 
-<button id="btn-export" onclick="exportPDF()">
-    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-    </svg>
-    Exporter en PDF
-</button>
+<!-- Toolbar impression -->
+<div id="print-toolbar" style="position:fixed;bottom:32px;right:32px;z-index:999;display:flex;gap:12px;align-items:center;">
+    <button id="btn-export" onclick="exportPDF()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        Exporter en PDF
+    </button>
+</div>
 
 <div id="rapport-content">
 
@@ -717,57 +748,29 @@ document.addEventListener('DOMContentLoaded', function () {
     @endif
 });
 
-// Export PDF — page de garde + 3 pages de données
-async function exportPDF() {
+// Export PDF — utilise window.print() (fonctionne en local ET en production)
+function exportPDF() {
     const btn = document.getElementById('btn-export');
     const bar = document.getElementById('progress-bar');
     btn.disabled = true;
     btn.innerHTML = `<svg class="animate-spin" width="18" height="18" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"></circle>
-        <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"></path></svg> Génération en cours...`;
+        <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"></path></svg> Préparation…`;
+    bar.style.width = '60%';
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    // Toutes les pages dans l'ordre : cover + page-1 + page-2 + page-3
-    const pages = ['page-cover', 'page-1', 'page-2', 'page-3', 'page-4'];
-    const W = 210;
-
-    for (let i = 0; i < pages.length; i++) {
-        bar.style.width = ((i / pages.length) * 90 + 5) + '%';
-        const el = document.getElementById(pages[i]);
-        const canvas = await html2canvas(el, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            width: 794,
-            height: el.offsetHeight,
-            windowWidth: 794,
-            logging: false,
-            onclone: (doc) => {
-                // Force tous les backgrounds inline à être rendus
-                doc.querySelectorAll('[style]').forEach(el => {
-                    el.style.webkitPrintColorAdjust = 'exact';
-                    el.style.printColorAdjust = 'exact';
-                });
-            }
-        });
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const imgH = (canvas.height * W) / canvas.width;
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, W, Math.min(imgH, 297));
-    }
-
-    bar.style.width = '100%';
-    const dateStr = '{{ \Carbon\Carbon::parse($dateFrom)->format("d-m-Y") }}_{{ \Carbon\Carbon::parse($dateTo)->format("d-m-Y") }}';
-    pdf.save('rapport_gsa_' + dateStr + '.pdf');
-
-    setTimeout(() => { bar.style.width = '0%'; }, 800);
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-        Exporter en PDF`;
+    // Laisser le temps aux graphiques de se rendre complètement
+    setTimeout(() => {
+        bar.style.width = '100%';
+        setTimeout(() => {
+            window.print();
+            bar.style.width = '0%';
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                Exporter en PDF`;
+        }, 300);
+    }, 800);
 }
 </script>
 </body>

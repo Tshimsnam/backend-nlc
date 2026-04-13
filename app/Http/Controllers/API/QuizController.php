@@ -14,10 +14,14 @@ class QuizController extends Controller
 {
     /**
      * Retourner les questions du quiz pour un événement
-     * GET /api/quiz/questions?event_id=1  ou  ?event_slug=grand-salon-autisme
+     * GET /api/quiz/questions?event_id=1  ou  ?event_slug=le-grand-salon-de-lautiste
+     * GET /api/evenements/{slug}/quiz/questions
      */
-    public function questions(Request $request)
+    public function questions(Request $request, ?string $slug = null)
     {
+        // Le slug peut venir de la route ou du query string
+        if ($slug) $request->merge(['event_slug' => $slug]);
+
         $eventId = $this->resolveEventId($request);
 
         $query = QuizQuestion::where('is_active', true)->orderBy('order');
@@ -33,10 +37,12 @@ class QuizController extends Controller
     /**
      * Soumettre les réponses du quiz (anonyme)
      * POST /api/quiz/submit
-     * Body: { event_id: 1, quiz_slug: "gsa-2026", answers: { "1": "vrai", ... } }
+     * POST /api/evenements/{slug}/quiz/submit
+     * Body: { quiz_slug: "gsa-2026", answers: { "1": "vrai", ... } }
      */
-    public function submit(Request $request)
+    public function submit(Request $request, ?string $slug = null)
     {
+        if ($slug) $request->merge(['event_slug' => $slug]);
         $request->validate([
             'quiz_slug'   => 'nullable|string|max:50',
             'event_id'    => 'nullable|exists:events,id',
@@ -85,9 +91,11 @@ class QuizController extends Controller
     /**
      * Statistiques par question
      * GET /api/quiz/stats?event_id=1
+     * GET /api/evenements/{slug}/quiz/stats
      */
-    public function stats(Request $request)
+    public function stats(Request $request, ?string $slug = null)
     {
+        if ($slug) $request->merge(['event_slug' => $slug]);
         $eventId = $this->resolveEventId($request);
         $slug    = $request->get('quiz_slug', 'gsa-2026');
 

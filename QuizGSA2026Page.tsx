@@ -1,217 +1,345 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Header from "@/components/layout/Header";
+import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type Answer = "vrai" | "faux" | "peut_etre";
 type Answers = Record<number, Answer>;
+interface Question { id: number; text: string; correct_answer?: string; }
 
-interface Question {
-  id: number;
-  text: string;
-}
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
-// ─── Questions du quiz ────────────────────────────────────────────────────────
-const QUESTIONS: Question[] = [
-  { id: 1,  text: "Un retrait de l'environnement immédiat ?" },
-  { id: 2,  text: "Une maladie physique ?" },
-  { id: 3,  text: "Transmis d'une génération à l'autre ?" },
-  { id: 4,  text: "Une maladie mentale ?" },
-  { id: 5,  text: "Associé à l'épilepsie ?" },
-  { id: 6,  text: "Lié à une mauvaise éducation parentale ?" },
-  { id: 7,  text: "Observé plus souvent chez les garçons que chez les filles ?" },
-  { id: 8,  text: "Diagnostiqué par des analyses de sang ?" },
-  { id: 9,  text: "Est-ce curable ?" },
-  { id: 10, text: "A un comportement difficile ?" },
-  { id: 11, text: "A des difficultés à communiquer ?" },
-  { id: 12, text: "Peut mener une vie épanouie avec le bon accompagnement ?" },
+const OPTIONS: { label: string; emoji: string; value: Answer; bg: string; border: string; text: string; selectedBg: string; selectedBorder: string }[] = [
+  {
+    label: "Vrai", emoji: "✅", value: "vrai",
+    bg: "bg-green-50 dark:bg-green-900/10", border: "border-green-200 dark:border-green-800", text: "text-green-800 dark:text-green-300",
+    selectedBg: "bg-green-500 dark:bg-green-600", selectedBorder: "border-green-500",
+  },
+  {
+    label: "Faux", emoji: "❌", value: "faux",
+    bg: "bg-red-50 dark:bg-red-900/10", border: "border-red-200 dark:border-red-800", text: "text-red-800 dark:text-red-300",
+    selectedBg: "bg-red-500 dark:bg-red-600", selectedBorder: "border-red-500",
+  },
+  {
+    label: "Peut-être", emoji: "🤔", value: "peut_etre",
+    bg: "bg-amber-50 dark:bg-amber-900/10", border: "border-amber-200 dark:border-amber-800", text: "text-amber-800 dark:text-amber-300",
+    selectedBg: "bg-amber-400 dark:bg-amber-500", selectedBorder: "border-amber-400",
+  },
 ];
 
-const QUIZ_SLUG = "gsa-2026";
-const TOKEN_KEY = `quiz_token_${QUIZ_SLUG}`;
-const DONE_KEY  = `quiz_done_${QUIZ_SLUG}`;
-const API_BASE  = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
-
-// ─── Composant bouton réponse ─────────────────────────────────────────────────
-const AnswerBtn = ({
-  label, value, selected, onClick,
-}: {
-  label: string; value: Answer; selected: boolean; onClick: () => void;
-}) => {
-  const colors: Record<Answer, string> = {
-    vrai:      selected ? "bg-green-500 text-white border-green-500"  : "border-green-300 text-green-700 hover:bg-green-50",
-    faux:      selected ? "bg-red-500 text-white border-red-500"      : "border-red-300 text-red-700 hover:bg-red-50",
-    peut_etre: selected ? "bg-amber-400 text-white border-amber-400"  : "border-amber-300 text-amber-700 hover:bg-amber-50",
-  };
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 rounded-full border-2 text-sm font-semibold transition-all ${colors[value]}`}
-    >
-      {label}
-    </button>
-  );
-};
-
-// ─── Page principale ──────────────────────────────────────────────────────────
 export default function QuizGSA2026Page() {
-  const [answers, setAnswers]     = useState<Answers>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const { slug } = useParams();
+  const navigate  = useNavigate();
 
-  // Vérifier si déjà soumis
+  const QUIZ_SLUG = slug ?? "gsa-2026";
+  const TOKEN_KEY = `quiz_token_${QUIZ_SLUG}`;
+  const DONE_KEY  = `quiz_done_${QUIZ_SLUG}`;
+  const returnUrl = slug ? `/evenements/${slug}?done=true#test` : "/evenements";
+
+  const [questions, setQuestions]   = useState<Question[]>([]);
+  const [loadingQ, setLoadingQ]     = useState(true);
+  const [current, setCurrent]       = useState(0);
+  const [direction, setDirection]   = useState(1);
+  const [answers, setAnswers]       = useState<Answers>({});
+  const [submitted, setSubmitted]   = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [justAnswered, setJustAnswered] = useState(false);
+
   useEffect(() => {
-    if (localStorage.getItem(DONE_KEY) === "1") setSubmitted(true);
-  }, []);
+    if (localStorage.getItem(DONE_KEY) === "1") {
+      setSubmitted(true);
+      setLoadingQ(false);
+      return;
+    }
+    // Utilise la route par slug si disponible, sinon fallback sur quiz_slug
+    const url = slug
+      ? `${API_BASE}/evenements/${slug}/quiz/questions`
+      : `${API_BASE}/quiz/questions?quiz_slug=${QUIZ_SLUG}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => setQuestions(data.questions ?? []))
+      .catch(() => setError("Impossible de charger les questions."))
+      .finally(() => setLoadingQ(false));
+  }, [DONE_KEY, QUIZ_SLUG, slug]);
 
-  const handleAnswer = (questionId: number, answer: Answer) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  const question    = questions[current];
+  const answered    = Object.keys(answers).length;
+  const isLast      = current === questions.length - 1;
+  const allAnswered = questions.length > 0 && answered === questions.length;
+  const progress    = questions.length > 0 ? (answered / questions.length) * 100 : 0;
+
+  const goTo = (index: number) => {
+    setDirection(index > current ? 1 : -1);
+    setJustAnswered(false);
+    setCurrent(index);
   };
 
-  const answered   = Object.keys(answers).length;
-  const allAnswered = answered === QUESTIONS.length;
+  const handleAnswer = (value: Answer) => {
+    if (!question) return;
+    setAnswers(prev => ({ ...prev, [question.id]: value }));
+    setJustAnswered(true);
+    if (!isLast) {
+      setTimeout(() => {
+        setDirection(1);
+        setJustAnswered(false);
+        setCurrent(c => c + 1);
+      }, 600);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!allAnswered) return;
-    setLoading(true);
-    setError(null);
-
-    // Récupérer ou générer un token anonyme
+    setLoading(true); setError(null);
     let token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-      // Fallback compatible HTTP (pas besoin de HTTPS)
-      token = Array.from({ length: 40 }, () =>
-        Math.floor(Math.random() * 36).toString(36)
-      ).join("");
+      token = Array.from({ length: 40 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
       localStorage.setItem(TOKEN_KEY, token);
     }
-
     try {
-      const res = await fetch(`${API_BASE}/quiz/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Quiz-Token": token,
-        },
-        body: JSON.stringify({ quiz_slug: QUIZ_SLUG, answers }),
-      });
-
+      const res = await fetch(
+        slug ? `${API_BASE}/evenements/${slug}/quiz/submit` : `${API_BASE}/quiz/submit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Quiz-Token": token },
+          body: JSON.stringify({ quiz_slug: QUIZ_SLUG, answers }),
+        }
+      );
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message ?? "Une erreur est survenue.");
-        return;
-      }
-
-      // Sauvegarder le token retourné par le serveur
+      if (!res.ok) { setError(data.message ?? "Une erreur est survenue."); return; }
       if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(DONE_KEY, "1");
       setSubmitted(true);
     } catch {
-      setError("Impossible de contacter le serveur. Vérifiez votre connexion.");
+      setError("Impossible de contacter le serveur.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Écran de remerciement ──────────────────────────────────────────────────
+  // ── Remerciement ────────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Merci pour votre participation !</h2>
-          <p className="text-gray-500 text-sm">
-            Vos réponses ont été enregistrées de façon anonyme.<br />
-            Ensemble, sensibilisons autour de l'autisme.
-          </p>
-          <div className="mt-6 text-xs text-gray-400">GSA 2026 — Never Limit Children</div>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="min-h-screen flex items-center justify-center p-4 pt-28">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="bg-card rounded-3xl shadow-xl border border-border p-10 max-w-md w-full text-center"
+          >
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 300 }} className="text-7xl mb-6">
+              🎉
+            </motion.div>
+            <h2 className="text-2xl font-bold text-foreground mb-3">Merci pour votre participation !</h2>
+            <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
+              Vos réponses ont été enregistrées de façon anonyme.<br />
+              Ensemble, sensibilisons autour de l'autisme.
+            </p>
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(returnUrl)}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-md w-full">
+              ← Retour à l'événement
+            </motion.button>
+            <p className="mt-6 text-xs text-muted-foreground">GSA 2026 — Never Limit Children</p>
+          </motion.div>
         </div>
       </div>
     );
   }
 
-  // ── Formulaire quiz ────────────────────────────────────────────────────────
+  // ── Chargement ──────────────────────────────────────────────────────────────
+  if (loadingQ) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="min-h-screen flex items-center justify-center pt-28">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Erreur chargement ───────────────────────────────────────────────────────
+  if (error && questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="min-h-screen flex flex-col items-center justify-center pt-28 gap-4">
+          <p className="text-red-500 text-sm">{error}</p>
+          <button onClick={() => navigate(returnUrl)} className="text-sm text-purple-600 hover:underline">← Retour à l'événement</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Quiz ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-secondary">
+      <Header />
+      <div className="pt-28 pb-16 px-4">
+        <div className="max-w-lg mx-auto">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-1">GSA 2026</p>
-          <h1 className="text-3xl font-black text-gray-800 mb-2">Quiz sur l'Autisme</h1>
-          <p className="text-gray-500 text-sm">
-            <span className="font-semibold text-gray-700">L'autisme est…</span>
-            &nbsp;Répondez à chaque affirmation.
-          </p>
-          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span> Vrai
-            <span className="w-2 h-2 rounded-full bg-red-400 inline-block ml-2"></span> Faux
-            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block ml-2"></span> Peut-être
-          </div>
-        </div>
-
-        {/* Progression */}
-        <div className="mb-6">
-          <div className="flex justify-between text-xs text-gray-400 mb-1">
-            <span>{answered} / {QUESTIONS.length} réponses</span>
-            <span>{Math.round((answered / QUESTIONS.length) * 100)} %</span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-300"
-              style={{ width: `${(answered / QUESTIONS.length) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Questions */}
-        <div className="space-y-4">
-          {QUESTIONS.map((q, i) => (
-            <div
-              key={q.id}
-              className={`bg-white rounded-2xl p-5 shadow-sm border-2 transition-all ${
-                answers[q.id] ? "border-purple-200" : "border-transparent"
-              }`}
-            >
-              <div className="flex items-start gap-3 mb-4">
-                <span className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <p className="text-gray-800 font-medium text-sm leading-relaxed">{q.text}</p>
-              </div>
-              <div className="flex gap-3 flex-wrap pl-10">
-                <AnswerBtn label="✅ Vrai"      value="vrai"      selected={answers[q.id] === "vrai"}      onClick={() => handleAnswer(q.id, "vrai")} />
-                <AnswerBtn label="❌ Faux"      value="faux"      selected={answers[q.id] === "faux"}      onClick={() => handleAnswer(q.id, "faux")} />
-                <AnswerBtn label="🤔 Peut-être" value="peut_etre" selected={answers[q.id] === "peut_etre"} onClick={() => handleAnswer(q.id, "peut_etre")} />
-              </div>
+          {/* Header */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
+            <button onClick={() => navigate(returnUrl)}
+              className="text-sm text-purple-600 hover:underline mb-5 block mx-auto focus:outline-none focus:ring-2 focus:ring-purple-400 rounded">
+              ← Retour à l'événement
+            </button>
+            <div className="inline-flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-3">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+              GSA 2026
             </div>
-          ))}
-        </div>
+            <h1 className="text-3xl font-black text-foreground mb-2">Quiz sur l'Autisme</h1>
+            <p className="text-muted-foreground text-sm">Répondez à chaque affirmation — vous pouvez passer et revenir.</p>
+          </motion.div>
 
-        {/* Erreur */}
-        {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
-            {error}
+          {/* Barre de progression */}
+          <div className="mb-8" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={questions.length}>
+            <div className="flex justify-between text-xs text-muted-foreground mb-2">
+              <span>{answered} / {questions.length} réponses</span>
+              <span className="font-semibold text-purple-600">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <motion.div className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                animate={{ width: `${progress}%` }} transition={{ duration: 0.4, ease: "easeOut" }} />
+            </div>
           </div>
-        )}
 
-        {/* Bouton soumettre */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={handleSubmit}
-            disabled={!allAnswered || loading}
-            className={`px-10 py-4 rounded-2xl text-white font-bold text-base transition-all shadow-lg ${
-              allAnswered && !loading
-                ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 hover:shadow-xl"
-                : "bg-gray-300 cursor-not-allowed"
-            }`}
-          >
-            {loading ? "Envoi en cours…" : allAnswered ? "Soumettre mes réponses" : `Répondez à toutes les questions (${QUESTIONS.length - answered} restantes)`}
-          </button>
-          <p className="text-xs text-gray-400 mt-3">🔒 Réponses anonymes — aucune donnée personnelle collectée</p>
+          {/* Dots navigation */}
+          <div className="flex items-center justify-center gap-1.5 mb-8 flex-wrap">
+            {questions.map((q, i) => (
+              <motion.button key={q.id} onClick={() => goTo(i)}
+                whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.9 }}
+                aria-label={`Question ${i + 1}${answers[q.id] ? " — répondue" : ""}`}
+                className={`transition-all rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${
+                  i === current ? "w-7 h-3 bg-purple-600" : answers[q.id] ? "w-3 h-3 bg-purple-400" : "w-3 h-3 bg-border hover:bg-purple-200"
+                }`} />
+            ))}
+          </div>
+
+          {/* Card question */}
+          <div className="relative" style={{ minHeight: "320px" }}>
+            <AnimatePresence mode="wait" custom={direction}>
+              {question && (
+                <motion.div key={current} custom={direction}
+                  initial={{ x: direction * 80, opacity: 0, scale: 0.96 }}
+                  animate={{ x: 0, opacity: 1, scale: 1 }}
+                  exit={{ x: direction * -80, opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="bg-card rounded-3xl border-2 border-border shadow-soft p-8"
+                >
+                  <div className="flex items-start gap-4 mb-8">
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+                      className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 text-white text-sm font-black flex items-center justify-center flex-shrink-0 shadow-md">
+                      {current + 1}
+                    </motion.div>
+                    <p className="text-foreground font-semibold text-lg leading-relaxed pt-1">{question.text}</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {OPTIONS.map((opt, i) => {
+                      const isSelected = answers[question.id] === opt.value;
+                      return (
+                        <motion.button key={opt.value}
+                          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.07 }}
+                          whileHover={{ scale: 1.02, x: 4 }} whileTap={{ scale: 0.98 }}
+                          onClick={() => handleAnswer(opt.value)}
+                          aria-pressed={isSelected}
+                          className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 ${
+                            isSelected
+                              ? `${opt.selectedBg} ${opt.selectedBorder} text-white shadow-md`
+                              : `${opt.bg} ${opt.border} ${opt.text} hover:shadow-sm`
+                          }`}
+                        >
+                          <span className="text-xl" aria-hidden="true">{opt.emoji}</span>
+                          <span className="flex-1 text-left">{opt.label}</span>
+                          {isSelected && (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                              className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </motion.div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+
+                  <AnimatePresence>
+                    {!answers[question.id] && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="text-xs text-muted-foreground mt-5 text-center">
+                        Vous pouvez passer cette question et y revenir plus tard.
+                      </motion.p>
+                    )}
+                    {justAnswered && answers[question.id] && !isLast && (
+                      <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="mt-4 text-center text-xs text-purple-600 dark:text-purple-400 font-medium">
+                        Passage à la question suivante…
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Navigation */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="flex justify-between items-center mt-6">
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => goTo(current - 1)} disabled={current === 0}
+              className="px-5 py-2.5 rounded-xl border-2 border-border text-foreground font-semibold text-sm hover:border-purple-300 disabled:opacity-30 transition-all focus:outline-none focus:ring-2 focus:ring-purple-400">
+              ← Précédent
+            </motion.button>
+
+            <span className="text-xs text-muted-foreground font-medium">{current + 1} / {questions.length}</span>
+
+            {isLast ? (
+              <motion.button whileHover={allAnswered ? { scale: 1.03 } : {}} whileTap={allAnswered ? { scale: 0.97 } : {}}
+                onClick={handleSubmit} disabled={!allAnswered || loading}
+                className={`px-8 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-purple-400 ${
+                  allAnswered && !loading
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:opacity-90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Envoi…
+                  </span>
+                ) : allAnswered ? "Soumettre ✓" : `${questions.length - answered} restante${questions.length - answered > 1 ? "s" : ""}`}
+              </motion.button>
+            ) : (
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => goTo(current + 1)}
+                className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-purple-400">
+                Suivant →
+              </motion.button>
+            )}
+          </motion.div>
+
+          <AnimatePresence>
+            {error && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                role="alert"
+                className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl px-4 py-3 text-sm">
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <p className="text-center text-xs text-muted-foreground mt-8">
+            🔒 Réponses anonymes — Never Limit Children
+          </p>
         </div>
-
-        <div className="text-center mt-8 text-xs text-gray-300">Never Limit Children — GSA 2026</div>
       </div>
     </div>
   );
