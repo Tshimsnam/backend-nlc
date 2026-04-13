@@ -553,6 +553,6 @@ export default function ColloqueEvaluationPage() {
           </p>
         </div>
       </div>
-    </div>
+    </div> 
   );
 }
