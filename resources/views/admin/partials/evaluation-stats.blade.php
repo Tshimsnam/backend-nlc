@@ -182,7 +182,7 @@
         @php
             $tsaKey = 'tsa_q' . $loop->iteration;
             $data   = $evaluationStats['tsaStats'][$tsaKey] ?? collect();
-            $total  = $data->sum();
+            $total  = (int) $data->sum();
         @endphp
         <div class="border-2 border-gray-100 rounded-2xl overflow-hidden" id="eval-card-{{ $q->id }}">
 
@@ -201,7 +201,7 @@
                             @php
                                 $letter    = $letters[$i] ?? chr(65+$i);
                                 $isCorrect = $q->correct_answer === $letter;
-                                $cnt       = $data[$letter] ?? 0;
+                                $cnt       = (int) ($data[$letter] ?? 0);
                                 $pct       = $total > 0 ? round($cnt/$total*100) : 0;
                             @endphp
                             <div class="flex items-center gap-2 rounded-lg px-3 py-2 {{ $isCorrect ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-100' }}">
