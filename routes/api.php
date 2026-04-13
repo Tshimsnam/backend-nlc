@@ -34,14 +34,26 @@ use App\Http\Controllers\API\QuizController;
 use App\Http\Controllers\API\ColloqueEvaluationController;
 
 // --- Quiz anonyme (GSA 2026)
+// Routes génériques (rétrocompatibilité)
 Route::post('/quiz/submit', [QuizController::class, 'submit']);
 Route::get('/quiz/stats', [QuizController::class, 'stats']);
 Route::get('/quiz/questions', [QuizController::class, 'questions']);
 
+// Routes par slug d'événement : /api/evenements/{slug}/quiz
+Route::get('/evenements/{slug}/quiz/questions', [QuizController::class, 'questions']);
+Route::post('/evenements/{slug}/quiz/submit', [QuizController::class, 'submit']);
+Route::get('/evenements/{slug}/quiz/stats', [QuizController::class, 'stats']);
+
 // --- Évaluation colloque GSA 2026
+// Routes génériques (rétrocompatibilité)
 Route::post('/colloque/evaluate', [ColloqueEvaluationController::class, 'store']);
 Route::get('/colloque/questions', [ColloqueEvaluationController::class, 'questions']);
 Route::get('/colloque/stats', [ColloqueEvaluationController::class, 'stats']);
+
+// Routes par slug d'événement : /api/evenements/{slug}/evaluation
+Route::get('/evenements/{slug}/evaluation/questions', [ColloqueEvaluationController::class, 'questions']);
+Route::post('/evenements/{slug}/evaluation/submit', [ColloqueEvaluationController::class, 'store']);
+Route::get('/evenements/{slug}/evaluation/stats', [ColloqueEvaluationController::class, 'stats']);
 
 // --- Configuration événement (lecture publique)
 Route::get('/events/{eventId}/config', function ($eventId) {

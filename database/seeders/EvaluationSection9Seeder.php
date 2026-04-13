@@ -4,58 +4,47 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\EvaluationQuestion;
+use App\Models\Event;
 
 class EvaluationSection9Seeder extends Seeder
 {
     public function run(): void
     {
+        // Lier au premier événement (ou celui avec le slug correspondant)
+        $event = Event::where('slug', 'le-grand-salon-de-lautiste')->first()
+            ?? Event::orderBy('id')->first();
+
+        $eventId = $event?->id;
+
+        // Supprimer les anciennes pour éviter les doublons
+        EvaluationQuestion::where('section', 'tsa')->delete();
+
         $questions = [
             [
-                'section'        => 'tsa',
                 'order'          => 1,
                 'text'           => 'Les personnes avec un TSA évitent le contact visuel :',
                 'options'        => json_encode(['A' => 'Toujours', 'B' => 'Parfois', 'C' => 'Jamais', 'D' => 'Je ne sais pas']),
                 'correct_answer' => 'B',
-                'is_active'      => true,
-                'event_id'       => null,
-                'created_at'     => now(),
-                'updated_at'     => now(),
             ],
             [
-                'section'        => 'tsa',
                 'order'          => 2,
                 'text'           => 'Les personnes avec un TSA présentent une déficience intellectuelle :',
                 'options'        => json_encode(['A' => 'Toujours', 'B' => 'Parfois', 'C' => 'Jamais', 'D' => 'Je ne sais pas']),
                 'correct_answer' => 'B',
-                'is_active'      => true,
-                'event_id'       => null,
-                'created_at'     => now(),
-                'updated_at'     => now(),
             ],
             [
-                'section'        => 'tsa',
                 'order'          => 3,
                 'text'           => 'Les personnes avec un TSA ont des comportements, intérêts ou activités restreints et répétitifs :',
                 'options'        => json_encode(['A' => 'Toujours', 'B' => 'Parfois', 'C' => 'Jamais', 'D' => 'Je ne sais pas']),
                 'correct_answer' => 'A',
-                'is_active'      => true,
-                'event_id'       => null,
-                'created_at'     => now(),
-                'updated_at'     => now(),
             ],
             [
-                'section'        => 'tsa',
                 'order'          => 4,
                 'text'           => 'Les personnes avec un TSA présentent des troubles du comportement :',
                 'options'        => json_encode(['A' => 'Toujours', 'B' => 'Parfois', 'C' => 'Jamais', 'D' => 'Je ne sais pas']),
                 'correct_answer' => 'B',
-                'is_active'      => true,
-                'event_id'       => null,
-                'created_at'     => now(),
-                'updated_at'     => now(),
             ],
             [
-                'section'        => 'tsa',
                 'order'          => 5,
                 'text'           => 'Le diagnostic de TSA est posé de façon :',
                 'options'        => json_encode([
@@ -65,13 +54,19 @@ class EvaluationSection9Seeder extends Seeder
                     'D' => 'Je ne sais pas',
                 ]),
                 'correct_answer' => 'C',
-                'is_active'      => true,
-                'event_id'       => null,
-                'created_at'     => now(),
-                'updated_at'     => now(),
             ],
         ];
 
-        EvaluationQuestion::insert($questions);
+        $rows = array_map(fn($q) => array_merge($q, [
+            'section'    => 'tsa',
+            'is_active'  => true,
+            'event_id'   => $eventId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]), $questions);
+
+        EvaluationQuestion::insert($rows);
+
+        $this->command->info("Questions TSA (section 9) seedées — liées à l'événement ID: {$eventId}");
     }
 }

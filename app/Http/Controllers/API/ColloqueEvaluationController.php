@@ -11,9 +11,11 @@ class ColloqueEvaluationController extends Controller
     /**
      * Soumettre une évaluation de colloque
      * POST /api/colloque/evaluate
+     * POST /api/evenements/{slug}/evaluation/submit
      */
-    public function store(Request $request)
+    public function store(Request $request, ?string $slug = null)
     {
+        if ($slug) $request->merge(['event_slug' => $slug]);
         $data = $request->validate([
             // Section 1
             'full_name'                => 'nullable|string|max:255',
@@ -62,6 +64,11 @@ class ColloqueEvaluationController extends Controller
         }
         unset($data['tsa_answers']);
 
+        // Résoudre event_id depuis le slug si fourni
+        if (empty($data['event_id']) && $request->event_slug) {
+            $data['event_id'] = \App\Models\Event::where('slug', $request->event_slug)->value('id');
+        }
+
         $data['ip_hash'] = hash('sha256', $request->ip());
 
         DB::table('colloque_evaluations')->insert(array_merge($data, [
@@ -78,9 +85,11 @@ class ColloqueEvaluationController extends Controller
     /**
      * Retourner les questions TSA dynamiques pour le frontend
      * GET /api/colloque/questions?event_id=1
+     * GET /api/evenements/{slug}/evaluation/questions
      */
-    public function questions(Request $request)
+    public function questions(Request $request, ?string $slug = null)
     {
+        if ($slug) $request->merge(['event_slug' => $slug]);
         $query = \App\Models\EvaluationQuestion::where('section', 'tsa')
             ->where('is_active', true)
             ->orderBy('order');
