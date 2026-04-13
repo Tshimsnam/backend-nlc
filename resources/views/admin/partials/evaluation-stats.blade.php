@@ -199,7 +199,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
                             @foreach($q->options as $i => $opt)
                             @php
-                                $letter    = $letters[$i] ?? chr(65+$i);
+                                $letter    = $letters[$i] ?? (is_int($i) ? chr(65+$i) : $i);
                                 $isCorrect = $q->correct_answer === $letter;
                                 $cnt       = (int) ($data[$letter] ?? 0);
                                 $pct       = $total > 0 ? round($cnt/$total*100) : 0;
