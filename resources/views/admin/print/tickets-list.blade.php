@@ -203,7 +203,6 @@
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Nom</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Email</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Téléphone</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Événement</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Catégorie</th>
                 <th style="padding:10px 8px;text-align:right;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Montant</th>
             </tr>
@@ -216,20 +215,19 @@
                 <td style="padding:8px;font-weight:600;color:#1f2937;">{{ $ticket->full_name }}</td>
                 <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->email ?? '—' }}</td>
                 <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->phone ?? '—' }}</td>
-                <td style="padding:8px;color:#374151;font-size:10px;">{{ $ticket->event->title ?? '—' }}</td>
                 <td style="padding:8px;color:#374151;font-size:10px;">{{ $ticket->price->label ?? ucfirst($ticket->category) }}</td>
                 <td style="padding:8px;text-align:right;font-weight:700;color:#1e1b4b;">{{ number_format($ticket->amount, 0) }} <span style="color:#9ca3af;font-weight:400;">{{ $ticket->currency }}</span></td>
             </tr>
             @empty
             <tr>
-                <td colspan="8" style="padding:32px;text-align:center;color:#9ca3af;font-style:italic;">Aucun billet trouvé.</td>
+                <td colspan="7" style="padding:32px;text-align:center;color:#9ca3af;font-style:italic;">Aucun billet trouvé.</td>
             </tr>
             @endforelse
         </tbody>
         @if($tickets->isNotEmpty())
         <tfoot>
             <tr style="background:linear-gradient(135deg,#f5f3ff,#fdf4ff);border-top:2px solid #ede9fe;">
-                <td colspan="7" style="padding:10px 8px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;font-size:10px;">TOTAL — {{ $stats['total'] }} billet(s)</td>
+                <td colspan="6" style="padding:10px 8px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;font-size:10px;">TOTAL — {{ $stats['total'] }} billet(s)</td>
                 <td style="padding:10px 8px;text-align:right;font-weight:900;color:#1e1b4b;font-size:13px;">{{ number_format($stats['revenue'], 0) }} <span style="color:#9ca3af;font-weight:400;font-size:10px;">{{ $stats['currency'] }}</span></td>
             </tr>
         </tfoot>
