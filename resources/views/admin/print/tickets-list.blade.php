@@ -203,7 +203,6 @@
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Nom</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Email</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Téléphone</th>
-                <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Événement</th>
                 <th style="padding:10px 8px;text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Catégorie</th>
                 <th style="padding:10px 8px;text-align:right;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Montant</th>
                 <th style="padding:10px 8px;text-align:center;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;border-bottom:2px solid #ede9fe;">Statut</th>
@@ -217,7 +216,6 @@
                 <td style="padding:8px;font-weight:600;color:#1f2937;">{{ $ticket->full_name }}</td>
                 <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->email ?? '—' }}</td>
                 <td style="padding:8px;color:#6b7280;font-size:10px;">{{ $ticket->phone ?? '—' }}</td>
-                <td style="padding:8px;color:#374151;font-size:10px;">{{ $ticket->event->title ?? '—' }}</td>
                 <td style="padding:8px;color:#374151;font-size:10px;">{{ $ticket->price->label ?? ucfirst($ticket->category) }}</td>
                 <td style="padding:8px;text-align:right;font-weight:700;color:#1e1b4b;">{{ number_format($ticket->amount, 0) }} <span style="color:#9ca3af;font-weight:400;">{{ $ticket->currency }}</span></td>
                 <td style="padding:8px;text-align:center;">
