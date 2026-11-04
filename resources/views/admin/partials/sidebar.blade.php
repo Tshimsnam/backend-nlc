@@ -1,7 +1,7 @@
 <!-- Sidebar -->
-<aside class="w-64 bg-white shadow-lg no-print">
+<aside class="hidden lg:block w-64 shrink-0 bg-white shadow-lg no-print overflow-y-auto">
     <div class="p-6 border-b">
-        <h1 class="text-2xl font-bold text-gray-800">NLC Events</h1>
+        <h1 class="text-2xl font-bold text-gray-800">NLC Admin</h1>
         <p class="text-sm text-gray-600 mt-1">Dashboard Admin</p>
     </div>
     
@@ -12,6 +12,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
             <span class="font-medium">Tableau de bord</span>
+        </a>
+
+        <a href="{{ route('admin.consortium.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg {{ request()->routeIs('admin.consortium.*') ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-50' }} transition mb-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m22 0v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span class="font-medium">Consortium</span>
         </a>
 
         <a href="{{ route('admin.consultations.index') }}"

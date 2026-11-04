@@ -2,142 +2,133 @@
 
 namespace Tests\Feature;
 
-use App\Mail\ConsultationScheduledMail;
 use App\Models\ConsultationRequest;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
+use App\Models\Orientation\Appointment;
+use App\Models\Orientation\Contact;
+use App\Services\Orientation\Workflow;
+use Tests\OrientationTestCase;
 
-class ConsultationAdminTest extends TestCase
+class ConsultationAdminTest extends OrientationTestCase
 {
-    protected function setUp(): void
+    public function test_correcting_pending_guardian_revokes_old_links_and_old_recipient_access(): void
     {
-        parent::setUp();
-        // Les anciennes migrations du projet ne tournent pas sur SQLite : on ne charge que celles des consultations
-        $this->artisan('migrate:fresh', ['--path' => [
-            'database/migrations/2026_10_26_000000_create_consultation_requests_table.php',
-            'database/migrations/2026_10_27_000000_add_scheduling_fields_to_consultation_requests_table.php',
-        ]]);
+        $c = $this->submit($this->family(), ['parent_lien' => 'tiers', 'parent_lien_autre' => 'Tante', 'guardian_name' => 'Responsable', 'guardian_email' => 'wrong@example.test']);
+        $oldGuardian = Contact::findOrFail($c->guardian_contact_id);
+        $notice = \App\Models\Orientation\Notice::where('title', 'Autorisation du représentant légal')->firstOrFail();
+        parse_str(parse_url($notice->action_url, PHP_URL_FRAGMENT), $oldToken);
+        $this->adminUser();
+        $body = ['action' => 'guardian_contact', 'guardian_name' => 'Responsable corrigé', 'guardian_email' => 'correct@example.test'];
+        $this->put('/admin/consultations/'.$c->id, $body)->assertSessionHasErrors('verified');
+        $this->put('/admin/consultations/'.$c->id, $body + ['verified' => 1])->assertSessionHas('success');
+        $this->postJson('/api/orientation/access/consume', $oldToken)->assertUnprocessable();
+        $this->loginActor($oldGuardian)->getJson('/api/orientation/requests/'.$c->id)->assertNotFound();
+        $newGuardian = Contact::findOrFail($c->fresh()->guardian_contact_id);
+        $this->loginActor($newGuardian)->getJson('/api/orientation/requests/'.$c->id)->assertJsonPath('can_authorize', true)->assertJsonPath('full_access', false);
     }
 
-    private function admin(): static
+    public function test_html_form_string_values_create_a_proposal_in_the_selected_time_zone(): void
     {
-        return $this->withSession(['admin_user' => (object) ['name' => 'Secrétariat']]);
+        $c = $this->submit($this->family());
+        $p = $this->professional();
+        $this->adminUser();
+        $this->from('/admin/consultations/'.$c->id)->put('/admin/consultations/'.$c->id, ['action' => 'propose', 'professional_id' => (string) $p->id, 'starts_at' => '2030-06-10T14:30', 'expires_at' => '2030-06-09T14:30', 'timezone' => 'Africa/Kinshasa', 'duration_minutes' => '45', 'fee_usd' => '0', 'mode' => 'centre', 'location' => 'Adresse du centre de démonstration', 'purpose' => 'Premier entretien avec la famille.', 'kind' => 'orientation'])->assertRedirect('/admin/consultations/'.$c->id)->assertSessionHas('success');
+        $a = Appointment::firstOrFail();
+        $this->assertSame('2030-06-10 13:30:00', $a->starts_at->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame('2030-06-10 14:15:00', $a->ends_at->utc()->format('Y-m-d H:i:s'));
     }
 
-    private function consultation(array $overrides = []): ConsultationRequest
+    public function test_pages_require_a_real_active_administrator(): void
     {
-        return ConsultationRequest::create(array_merge([
-            'parent_nom' => 'Mbuyi', 'parent_prenom' => 'Grace', 'parent_lien' => 'mere',
-            'pays' => 'Canada', 'ville' => 'Montréal', 'fuseau_horaire' => 'America/Toronto',
-            'email' => 'grace@example.com', 'whatsapp' => '+1 (514) 555-0101', 'langue_seance' => 'Français',
-            'enfant_nom' => 'Mbuyi', 'enfant_prenom' => 'David', 'enfant_sexe' => 'M',
-            'enfant_date_naissance' => '2020-03-14', 'motif' => 'Retard de langage.',
-            'creneaux' => [['start' => '2030-06-10T09:00:00Z']], 'plateforme' => 'meet',
-            'consentement_donnees' => true, 'engagement_avis_psychiatre' => true,
-            'acceptation_conditions' => true, 'consented_at' => now(),
-        ], $overrides));
-    }
-
-    public function test_pages_require_an_admin_session(): void
-    {
-        $c = $this->consultation();
-
         $this->get('/admin/consultations')->assertRedirect(route('login'));
-        $this->get("/admin/consultations/{$c->id}")->assertRedirect(route('login'));
-        $this->put("/admin/consultations/{$c->id}", ['status' => 'annulee'])->assertRedirect(route('login'));
+        $this->withSession(['admin_user' => (object) ['name' => 'Faux admin']])->get('/admin/consultations')->assertRedirect(route('login'));
+        $a = $this->adminUser();
+        $a->update(['is_active' => false]);
+        $this->get('/admin/consultations')->assertForbidden();
+        $a->update(['is_active' => true, 'role' => 'parent']);
+        $this->get('/admin/consultations')->assertForbidden();
+    }
+
+    public function test_list_detail_documents_and_professional_forms_render_with_filters(): void
+    {
+        $a = $this->family();
+        $c = $this->submit($a);
+        $other = $this->submit($a, ['enfant_prenom' => 'Sarah']);
+        $this->adminUser();
+        $this->get('/admin/consultations')->assertOk()->assertSee('David')->assertSee('Sarah');
+        $this->get('/admin/consultations?search=Sarah')->assertOk()->assertSee('Sarah')->assertDontSee('David Mbuyi');
+        $this->get('/admin/consultations/'.$c->id)->assertOk()->assertSee($c->reference)->assertSee('Préparer un rendez-vous');
+        $this->get('/admin/consultations/professionnels')->assertOk();
+        $this->get('/admin/consultations/configuration')->assertOk();
+    }
+
+    public function test_professionals_need_verified_credentials_and_can_receive_an_invitation(): void
+    {
+        $this->adminUser();
+        $data = ['name' => 'Dr Exemple', 'email' => 'PRO@example.test', 'profession' => 'Psychiatre', 'engagement' => 'consultant', 'timezone' => 'Africa/Kinshasa', 'default_fee_usd' => 25, 'active' => 1, 'invite' => 1];
+        $this->post('/admin/consultations/professionnels', $data)->assertSessionHasErrors('validated');
+        $this->post('/admin/consultations/professionnels', $data + ['validated' => 1])->assertSessionHas('success');
+        $p = \App\Models\Orientation\Professional::firstOrFail();
+        $this->assertSame('pro@example.test', $p->email);
+        $this->assertNotNull($p->validated_at);
+        $this->assertSame(1, \App\Models\Orientation\AccessLink::where('actor_type', 'professional')->count());
+    }
+
+    public function test_proposal_requires_valid_location_and_cannot_confirm_before_professional_and_family_agree(): void
+    {
+        $family = $this->family();
+        $c = $this->submit($family);
+        $p = $this->professional();
+        $a = $this->proposal($c, $p);
+        $this->assertSame('awaiting_professional', $a->status);
+        $this->loginActor($family)->postJson('/api/orientation/appointments/'.$a->id, ['action' => 'accept', 'consent' => true])->assertUnprocessable();
+        $this->loginActor($p)->postJson('/api/orientation/appointments/'.$a->id, ['action' => 'accept'])->assertOk();
+        $this->assertSame('proposed', $a->fresh()->status);
+        $this->loginActor($family)->postJson('/api/orientation/appointments/'.$a->id, ['action' => 'accept', 'consent' => true])->assertOk();
+        $this->assertSame('confirmed', $a->fresh()->status);
+        $this->assertSame('rdv_programme', $c->fresh()->status);
+        $this->assertSame('gratuit', $c->fresh()->statut_paiement);
+        $this->postJson('/api/orientation/appointments/'.$a->id, ['action' => 'accept', 'consent' => true])->assertUnprocessable();
+    }
+
+    public function test_overlapping_reservations_are_blocked_and_cancelled_slots_can_be_reused(): void
+    {
+        $c = $this->submit($this->family());
+        $other = $this->submit($this->family('b@example.test'));
+        $p = $this->professional();
+        $a = $this->proposal($c, $p);
+        try {
+            $this->proposal($other, $p);
+            $this->fail('Le conflit doit être refusé.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('starts_at', $e->errors());
+        }
+        app(Workflow::class)->cancel($a, 'Report demandé par la famille.', 'admin', 1);
+        $this->assertSame('awaiting_professional', $this->proposal($other, $p)->status);
+    }
+
+    public function test_information_requests_open_supplements_and_keep_admin_notes_private(): void
+    {
+        $family = $this->family();
+        $c = $this->submit($family);
+        $this->adminUser();
+        $this->put('/admin/consultations/'.$c->id, ['action' => 'notes', 'notes_internes' => 'NOTE CONFIDENTIELLE'])->assertSessionHas('success');
+        $this->put('/admin/consultations/'.$c->id, ['action' => 'information', 'body' => 'Merci de préciser les difficultés rencontrées à l’école.'])->assertSessionHas('success');
+        $this->assertNotNull($c->fresh()->first_response_at);
+        $this->loginActor($family)->getJson('/api/orientation/requests/'.$c->id)->assertJsonPath('status', 'dossier_incomplet')->assertDontSee('NOTE CONFIDENTIELLE');
+        $this->postJson('/api/orientation/requests/'.$c->id.'/supplement', ['data' => ['motif' => 'Informations précisées sur les difficultés rencontrées à l’école.', 'email' => 'interdit@example.test'], 'response' => 'Nous avons précisé les difficultés à l’école.'])->assertOk();
         $this->assertSame('nouvelle', $c->fresh()->status);
+        $this->assertSame($family->email, $c->fresh()->email);
     }
 
-    public function test_list_filters_by_status_and_search(): void
+    public function test_legacy_dossiers_require_explicit_authority_review_before_portal_activation(): void
     {
-        $this->consultation();
-        $this->consultation(['enfant_prenom' => 'Sarah', 'status' => 'rdv_programme']);
-
-        $this->admin()->get('/admin/consultations')
-            ->assertOk()->assertSee('David')->assertSee('Sarah');
-
-        $this->admin()->get('/admin/consultations?status=rdv_programme')
-            ->assertOk()->assertSee('Sarah')->assertDontSee('David Mbuyi');
-
-        $this->admin()->get('/admin/consultations?search=Sarah')
-            ->assertOk()->assertSee('Sarah')->assertDontSee('David Mbuyi');
-    }
-
-    public function test_detail_shows_slots_in_kinshasa_time_and_whatsapp_link(): void
-    {
-        $c = $this->consultation();
-
-        $this->admin()->get("/admin/consultations/{$c->id}")
-            ->assertOk()
-            ->assertSee($c->reference)
-            ->assertSee('10 juin 2030 à 10:00')         // 09:00 UTC = 10:00 à Kinshasa
-            ->assertSee('10 juin à 05:00', false)       // = 05:00 à Montréal (UTC-4)
-            ->assertSee('https://wa.me/15145550101', false);
-    }
-
-    public function test_secretariat_schedules_and_notifies_parent(): void
-    {
-        Mail::fake();
-        $c = $this->consultation();
-
-        $this->admin()->from("/admin/consultations/{$c->id}")->put("/admin/consultations/{$c->id}", [
-            'action' => 'notify',
-            'status' => 'nouvelle',
-            'professionnel_assigne' => 'Dr Kabongo',
-            'seance_programmee_at' => '2030-06-10T14:30',   // heure de Kinshasa
-            'duree_minutes' => 45,
-            'lien_visio' => 'https://meet.google.com/abc-defg-hij',
-            'prix' => '25',
-            'devise' => 'USD',
-        ])->assertRedirect("/admin/consultations/{$c->id}")->assertSessionHas('success');
-
-        $c->refresh();
-        $this->assertSame('rdv_programme', $c->status);
-        $this->assertSame('2030-06-10 13:30:00', $c->seance_programmee_at->utc()->format('Y-m-d H:i:s'));
-        $this->assertSame('en_attente', $c->statut_paiement);
-        $this->assertNotNull($c->confirmation_envoyee_at);
-
-        Mail::assertSent(ConsultationScheduledMail::class, function ($mail) {
-            $html = $mail->render();
-
-            return $mail->hasTo('grace@example.com')
-                && str_contains($html, 'https://meet.google.com/abc-defg-hij')
-                && str_contains($html, '14:30')   // Kinshasa
-                && str_contains($html, '09:30')   // Montréal
-                && str_contains($html, '25,00 USD');
-        });
-    }
-
-    public function test_notify_requires_date_and_link_but_save_does_not(): void
-    {
-        Mail::fake();
-        $c = $this->consultation();
-
-        $this->admin()->put("/admin/consultations/{$c->id}", ['action' => 'notify', 'status' => 'nouvelle', 'devise' => 'USD'])
-            ->assertSessionHasErrors(['seance_programmee_at', 'lien_visio']);
-        Mail::assertNothingSent();
-
-        $this->admin()->put("/admin/consultations/{$c->id}", [
-            'action' => 'save', 'status' => 'dossier_incomplet', 'devise' => 'USD', 'notes_internes' => 'Relancer pour l\'avis du psychiatre',
-        ])->assertSessionHas('success');
-
-        $c->refresh();
-        $this->assertSame('dossier_incomplet', $c->status);
-        $this->assertSame('gratuit', $c->statut_paiement);
-        $this->assertNull($c->confirmation_envoyee_at);
-        Mail::assertNothingSent();
-    }
-
-    public function test_documents_are_downloadable_by_admin_only(): void
-    {
-        Storage::fake('local');
-        Storage::disk('local')->put('consultations/TC-X/abc.pdf', 'contenu');
-        $c = $this->consultation(['documents' => [['name' => 'bilan.pdf', 'path' => 'consultations/TC-X/abc.pdf', 'size' => 7, 'mime' => 'application/pdf']]]);
-
-        $this->get("/admin/consultations/{$c->id}/documents/0")->assertRedirect(route('login'));
-        $this->admin()->get("/admin/consultations/{$c->id}/documents/0")
-            ->assertOk()->assertDownload('bilan.pdf');
-        $this->admin()->get("/admin/consultations/{$c->id}/documents/5")->assertNotFound();
+        $c = new ConsultationRequest;
+        $c->fill($this->payload() + ['email' => 'legacy@example.test', 'whatsapp' => '', 'enfant_sexe' => 'M', 'plateforme' => 'meet']);
+        $c->save();
+        $this->adminUser();
+        $this->put('/admin/consultations/'.$c->id, ['action' => 'adopt'])->assertSessionHasErrors('verified');
+        $this->put('/admin/consultations/'.$c->id, ['action' => 'adopt', 'verified' => 1])->assertSessionHas('success');
+        $this->assertNotNull($c->fresh()->orientation_contact_id);
+        $this->assertSame('declared', $c->fresh()->authority_status);
     }
 }

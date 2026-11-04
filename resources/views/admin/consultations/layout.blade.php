@@ -16,8 +16,8 @@
     <div class="flex h-screen overflow-hidden">
         @include('admin.partials.sidebar')
 
-        <main class="flex-1 overflow-y-auto">
-            <div class="p-8">
+        <main class="flex-1 min-w-0 overflow-y-auto">
+            <div class="p-4 sm:p-8">
                 <div class="mb-8 no-print">
                     @yield('header')
                 </div>

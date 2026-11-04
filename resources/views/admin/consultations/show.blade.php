@@ -1,246 +1,68 @@
 @extends('admin.consultations.layout')
-
-@section('title', 'Dossier ' . $c->reference)
-
-@use('App\Models\ConsultationRequest')
-
-@php
-    $kin = 'Africa/Kinshasa';
-    $liens = ConsultationRequest::LIEN_LABELS;
-    $liens['autre'] = $c->parent_lien_autre ?: 'Autre';
-    $diag = $c->diagnostics_anterieurs ?? [];
-    $diagTexte = implode(', ', array_filter(array_merge($diag['types'] ?? [], [$diag['autre'] ?? null])));
-    $seance = $c->seanceFormatee();
-
-    // Message WhatsApp pré-rempli : confirmation si le RDV est fixé, sinon premier contact
-    $messageWhatsApp = $seance && $c->lien_visio
-        ? "Bonjour {$c->parent_prenom}, ici le secrétariat de Never Limit Children. La séance pour {$c->enfant_prenom} est confirmée le {$seance['parent']} (votre heure), soit {$seance['kinshasa']} à Kinshasa. Lien : {$c->lien_visio} - Dossier {$c->reference}"
-        : "Bonjour {$c->parent_prenom}, ici le secrétariat de Never Limit Children au sujet de votre demande pour {$c->enfant_prenom} (dossier {$c->reference}).";
-
-    $input = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400';
-    $label = 'block text-sm font-medium text-gray-700 mb-1';
-    $dt = 'text-gray-500 py-1.5 pr-4 align-top w-48';
-    $dd = 'text-gray-900 py-1.5';
-@endphp
-
+@section('title','Orientation '.$c->reference)
 @section('header')
-    <a href="{{ route('admin.consultations.index') }}" class="text-sm text-gray-500 hover:text-blue-600">← Toutes les consultations</a>
-    <div class="flex flex-wrap items-center gap-3 mt-2">
-        <h2 class="text-3xl font-bold text-gray-800">{{ $c->enfant_nom_complet }}</h2>
-        @include('admin.consultations._status-badge', ['status' => $c->status])
-    </div>
-    <p class="text-gray-600 mt-1">
-        Dossier <span class="font-mono">{{ $c->reference }}</span> - reçu le {{ $c->created_at->timezone($kin)->format('d/m/Y à H:i') }}
-        @if($c->confirmation_envoyee_at)
-            - confirmation envoyée le {{ $c->confirmation_envoyee_at->timezone($kin)->format('d/m/Y à H:i') }}
-        @endif
-    </p>
+<a href="{{ route('admin.consultations.index') }}" class="text-purple-700 text-sm">← Toutes les demandes</a>
+<div class="flex flex-wrap justify-between gap-4 mt-4"><div><h1 class="text-3xl font-bold">{{ $c->enfant_nom_complet }}</h1><p class="text-gray-500 mt-2">{{ $c->reference }} · {{ \App\Models\ConsultationRequest::STATUS_LABELS[$c->status] ?? $c->status }}</p></div><a class="text-purple-700" href="{{ route('admin.consultations.professionals') }}">Gérer les professionnels</a></div>
 @endsection
-
 @section('content')
-<div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
-
-    {{-- ── Dossier ─────────────────────────────────────────────── --}}
-    <div class="xl:col-span-3 space-y-6">
-
-        <section class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Créneaux proposés par le parent</h3>
-            <ul class="space-y-2">
-                @foreach($c->creneaux ?? [] as $creneau)
-                    @php $start = \Carbon\Carbon::parse($creneau['start']); @endphp
-                    <li class="flex flex-wrap items-center justify-between gap-2 border rounded-lg px-4 py-3">
-                        <div>
-                            <div class="font-medium text-gray-900">{{ ucfirst($start->copy()->timezone($kin)->locale('fr')->translatedFormat('l j F Y à H:i')) }} <span class="text-gray-500 font-normal">(Kinshasa)</span></div>
-                            <div class="text-xs text-gray-500">{{ $start->copy()->timezone($c->fuseau_horaire)->locale('fr')->translatedFormat('l j F à H:i') }} chez le parent ({{ $c->fuseau_horaire }})</div>
-                        </div>
-                        <button type="button" class="text-sm text-blue-600 hover:underline no-print"
-                                onclick="document.getElementById('seance_programmee_at').value='{{ $start->copy()->timezone($kin)->format('Y-m-d\TH:i') }}'">
-                            Retenir ce créneau
-                        </button>
-                    </li>
-                @endforeach
-            </ul>
-            <p class="text-sm text-gray-600 mt-3">
-                Plateforme souhaitée : <strong>{{ ConsultationRequest::PLATFORM_LABELS[$c->plateforme] ?? $c->plateforme }}</strong>
-                - Langue : <strong>{{ $c->langue_seance }}</strong>
-                @if($c->participants) - {{ $c->participants === 'parents_enfant' ? "Parents avec l'enfant" : 'Parents seuls' }} @endif
-            </p>
-        </section>
-
-        <section class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Parent / responsable</h3>
-            <table class="text-sm w-full">
-                <tr><td class="{{ $dt }}">Nom</td><td class="{{ $dd }}">{{ $c->parent_nom_complet }} ({{ $liens[$c->parent_lien] ?? $c->parent_lien }})</td></tr>
-                <tr><td class="{{ $dt }}">Résidence</td><td class="{{ $dd }}">{{ $c->ville }}, {{ $c->pays }}</td></tr>
-                <tr><td class="{{ $dt }}">E-mail</td><td class="{{ $dd }}"><a href="mailto:{{ $c->email }}" class="text-blue-600 hover:underline">{{ $c->email }}</a></td></tr>
-                <tr><td class="{{ $dt }}">WhatsApp</td><td class="{{ $dd }}">{{ $c->whatsapp }}</td></tr>
-                @if($c->telephone)<tr><td class="{{ $dt }}">Autre téléphone</td><td class="{{ $dd }}">{{ $c->telephone }}</td></tr>@endif
-                @if($c->contact2_nom)<tr><td class="{{ $dt }}">Second contact</td><td class="{{ $dd }}">{{ $c->contact2_nom }} {{ $c->contact2_telephone }}</td></tr>@endif
-                @if($c->source_connaissance)<tr><td class="{{ $dt }}">A connu NLC par</td><td class="{{ $dd }}">{{ $c->source_connaissance }}</td></tr>@endif
-            </table>
-        </section>
-
-        <section class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Enfant</h3>
-            <table class="text-sm w-full">
-                <tr><td class="{{ $dt }}">Nom complet</td><td class="{{ $dd }}">{{ $c->enfant_nom_complet }} ({{ $c->enfant_sexe === 'F' ? 'fille' : 'garçon' }})</td></tr>
-                <tr><td class="{{ $dt }}">Date de naissance</td><td class="{{ $dd }}">{{ $c->enfant_date_naissance->format('d/m/Y') }} ({{ $c->enfant_date_naissance->age }} ans)</td></tr>
-                @if($c->langues_maison)<tr><td class="{{ $dt }}">Langues à la maison</td><td class="{{ $dd }}">{{ $c->langues_maison }}</td></tr>@endif
-                @if(!is_null($c->scolarise))
-                    <tr><td class="{{ $dt }}">Scolarisé</td><td class="{{ $dd }}">{{ $c->scolarise ? 'Oui' : 'Non' }}@if($c->scolarise) - école {{ $c->type_ecole === 'specialisee' ? 'spécialisée' : 'ordinaire' }} {{ $c->classe }}@endif</td></tr>
-                @endif
-                @if($c->niveau_langage)<tr><td class="{{ $dt }}">Langage</td><td class="{{ $dd }}">{{ ConsultationRequest::LANGAGE_LABELS[$c->niveau_langage] ?? $c->niveau_langage }}</td></tr>@endif
-            </table>
-        </section>
-
-        <section class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Situation</h3>
-            <p class="bg-gray-50 rounded-lg p-4 text-sm text-gray-800 whitespace-pre-line mb-4">{{ $c->motif }}</p>
-            <table class="text-sm w-full">
-                @if($c->age_premieres_difficultes)<tr><td class="{{ $dt }}">Premières difficultés</td><td class="{{ $dd }}">{{ $c->age_premieres_difficultes }}</td></tr>@endif
-                @if($diagTexte || !empty($diag['par_qui']))
-                    <tr><td class="{{ $dt }}">Diagnostic(s) déjà posé(s)</td><td class="{{ $dd }}">
-                        {{ $diagTexte ?: 'Non précisé' }}
-                        @if(!empty($diag['par_qui'])) - par {{ $diag['par_qui'] }} @endif
-                        @if(!empty($diag['quand'])) ({{ $diag['quand'] }}) @endif
-                    </td></tr>
-                @endif
-                @if(!empty($c->suivis))<tr><td class="{{ $dt }}">Suivis</td><td class="{{ $dd }}">{{ implode(', ', $c->suivis) }}</td></tr>@endif
-                @if($c->antecedents_familiaux)<tr><td class="{{ $dt }}">Antécédents familiaux</td><td class="{{ $dd }}">{{ ['oui' => 'Oui', 'non' => 'Non', 'ne_sait_pas' => 'Ne sait pas'][$c->antecedents_familiaux] }}</td></tr>@endif
-                @if($c->naissance_particuliere)<tr><td class="{{ $dt }}">Grossesse / naissance</td><td class="{{ $dd }}">{{ $c->naissance_particuliere }}</td></tr>@endif
-                @if($c->traitement_actuel)<tr><td class="{{ $dt }}">Traitement actuel</td><td class="{{ $dd }}">{{ $c->traitement_actuel }}</td></tr>@endif
-                @foreach(ConsultationRequest::OBSERVATION_LABELS as $key => $obsLabel)
-                    @if(!empty($c->observations[$key]))
-                        <tr><td class="{{ $dt }}">{{ $obsLabel }}</td><td class="{{ $dd }}">{{ ucfirst($c->observations[$key]) }}</td></tr>
-                    @endif
-                @endforeach
-                @if($c->attentes)<tr><td class="{{ $dt }}">Attentes</td><td class="{{ $dd }}">{{ $c->attentes }}</td></tr>@endif
-            </table>
-        </section>
-
-        <section class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Documents</h3>
-            @if(empty($c->documents))
-                <p class="text-sm text-gray-500">Aucun document. L'avis du psychiatre doit être transmis après l'inscription.</p>
-            @else
-                <ul class="divide-y text-sm">
-                    @foreach($c->documents as $i => $doc)
-                        <li class="flex items-center justify-between py-2">
-                            <span class="text-gray-800">{{ $doc['name'] }} <span class="text-gray-400">({{ number_format($doc['size'] / 1024 / 1024, 1) }} Mo)</span></span>
-                            <a href="{{ route('admin.consultations.document', [$c, $i]) }}" class="text-blue-600 hover:underline">Télécharger</a>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-            <p class="text-xs text-gray-400 mt-3">Consentements donnés le {{ $c->consented_at?->timezone($kin)->format('d/m/Y à H:i') }}.</p>
-        </section>
-    </div>
-
-    {{-- ── Traitement par le secrétariat ───────────────────────── --}}
-    <div class="xl:col-span-2">
-        <div class="xl:sticky xl:top-0 space-y-6">
-            <form method="POST" action="{{ route('admin.consultations.update', $c) }}" class="bg-white rounded-xl shadow p-6 space-y-4 no-print">
-                @csrf
-                @method('PUT')
-                <h3 class="text-lg font-bold text-gray-800">Traitement</h3>
-
-                <div>
-                    <label for="status" class="{{ $label }}">Statut</label>
-                    <select id="status" name="status" class="{{ $input }}">
-                        @foreach(ConsultationRequest::STATUS_LABELS as $key => $statusLabel)
-                            <option value="{{ $key }}" @selected(old('status', $c->status) === $key)>{{ $statusLabel }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="professionnel_assigne" class="{{ $label }}">Professionnel assigné</label>
-                    <input id="professionnel_assigne" name="professionnel_assigne" value="{{ old('professionnel_assigne', $c->professionnel_assigne) }}"
-                           placeholder="Ex. Dr Kabongo, psychologue" class="{{ $input }}">
-                </div>
-
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-2">
-                        <label for="seance_programmee_at" class="{{ $label }}">Date et heure (Kinshasa)</label>
-                        <input type="datetime-local" id="seance_programmee_at" name="seance_programmee_at"
-                               value="{{ old('seance_programmee_at', $c->seance_programmee_at?->timezone($kin)->format('Y-m-d\TH:i')) }}" class="{{ $input }}">
-                    </div>
-                    <div>
-                        <label for="duree_minutes" class="{{ $label }}">Durée (min)</label>
-                        <input type="number" id="duree_minutes" name="duree_minutes" min="10" max="240" step="5"
-                               value="{{ old('duree_minutes', $c->duree_minutes ?? 45) }}" class="{{ $input }}">
-                    </div>
-                </div>
-                @if($seance)
-                    <p class="text-xs text-gray-500 -mt-2">Chez le parent : {{ $seance['parent'] }} ({{ $c->fuseau_horaire }})</p>
-                @endif
-
-                <div>
-                    <label for="lien_visio" class="{{ $label }}">Lien Zoom ou Google Meet</label>
-                    <input type="url" id="lien_visio" name="lien_visio" value="{{ old('lien_visio', $c->lien_visio) }}"
-                           placeholder="https://meet.google.com/…" class="{{ $input }}">
-                    <p class="text-xs text-gray-500 mt-1">Créez la réunion dans Zoom ou Meet, puis collez son lien ici.</p>
-                </div>
-
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label for="prix" class="{{ $label }}">Tarif</label>
-                        <input type="number" id="prix" name="prix" min="0" step="0.01" value="{{ old('prix', $c->prix) }}" placeholder="0 = gratuit" class="{{ $input }}">
-                    </div>
-                    <div>
-                        <label for="devise" class="{{ $label }}">Devise</label>
-                        <select id="devise" name="devise" class="{{ $input }}">
-                            @foreach(['USD', 'CDF', 'EUR'] as $devise)
-                                <option @selected(old('devise', $c->devise ?? 'USD') === $devise)>{{ $devise }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label for="statut_paiement" class="{{ $label }}">Paiement</label>
-                        <select id="statut_paiement" name="statut_paiement" class="{{ $input }}">
-                            <option value="">Auto</option>
-                            @foreach(ConsultationRequest::PAYMENT_STATUSES as $key => $paymentLabel)
-                                <option value="{{ $key }}" @selected(old('statut_paiement', $c->statut_paiement) === $key)>{{ $paymentLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="notes_internes" class="{{ $label }}">Notes internes <span class="text-gray-400 font-normal">(jamais visibles par le parent)</span></label>
-                    <textarea id="notes_internes" name="notes_internes" rows="4" class="{{ $input }}">{{ old('notes_internes', $c->notes_internes) }}</textarea>
-                </div>
-
-                <div class="flex flex-col gap-2 pt-2">
-                    <button type="submit" name="action" value="notify"
-                            onclick="return confirm('Envoyer la confirmation du rendez-vous à {{ $c->email }} ?')"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg transition">
-                        {{ $c->confirmation_envoyee_at ? 'Enregistrer et renvoyer la confirmation' : 'Enregistrer et confirmer le RDV au parent' }}
-                    </button>
-                    <button type="submit" name="action" value="save"
-                            class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-lg transition">
-                        Enregistrer seulement
-                    </button>
-                </div>
-            </form>
-
-            <div class="bg-white rounded-xl shadow p-6 no-print">
-                <h3 class="text-lg font-bold text-gray-800 mb-3">Contacter le parent</h3>
-                <div class="flex flex-col gap-2">
-                    @if($c->lienWhatsApp())
-                        <a href="{{ $c->lienWhatsApp($messageWhatsApp) }}" target="_blank" rel="noopener"
-                           class="w-full text-center bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2.5 rounded-lg transition">
-                            {{ $seance && $c->lien_visio ? 'Envoyer la confirmation sur WhatsApp' : 'Écrire sur WhatsApp' }}
-                        </a>
-                    @endif
-                    <a href="mailto:{{ $c->email }}?subject={{ rawurlencode('Votre demande ' . $c->reference) }}"
-                       class="w-full text-center bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-lg transition">
-                        Écrire un e-mail
-                    </a>
-                </div>
-                <p class="text-xs text-gray-500 mt-3">WhatsApp s'ouvre avec un message pré-rempli : vérifiez-le avant de l'envoyer.</p>
-            </div>
-        </div>
-    </div>
+@php $post=route('admin.consultations.update',$c); $authorized=in_array($c->authority_status,['declared','approved'],true); @endphp
+@if(!$c->orientation_contact_id)
+<form method="POST" action="{{ $post }}" class="p-5 bg-amber-50 border border-amber-200 rounded-xl mb-6">@csrf @method('PUT')<input type="hidden" name="action" value="adopt"><p class="font-semibold">Dossier antérieur au suivi sécurisé</p><p class="text-sm mt-2">Vérifiez l’identité et l’autorité du responsable avant d’activer l’accès. Les données historiques sont conservées.</p><label class="flex gap-2 mt-3"><input type="checkbox" name="verified" value="1" required> J’ai vérifié que ce contact est autorisé à agir pour l’enfant.</label><button class="mt-3 px-4 py-2 bg-amber-900 text-white rounded-lg">Activer le suivi et envoyer un lien personnel</button></form>
+@elseif(!$authorized)<div class="p-5 bg-amber-50 border border-amber-200 rounded-xl mb-6">Autorisation du représentant légal : <strong>{{ ['pending'=>'En attente','declared'=>'Déclaration du responsable enregistrée','approved'=>'Autorisation reçue','refused'=>'Refusée','legacy'=>'À vérifier'][$c->authority_status] ?? $c->authority_status }}</strong>. Aucune proposition ni transmission clinique ne peut être faite avant autorisation.</div>@endif
+<div class="grid xl:grid-cols-3 gap-6">
+<div class="xl:col-span-2 space-y-6 min-w-0">
+<section class="bg-white border rounded-xl p-6"><h2 class="text-xl font-bold mb-4">Demande et situation rapportée</h2><p class="whitespace-pre-wrap">{{ $c->motif }}</p>@if($c->attentes)<h3 class="font-semibold mt-5">Attentes de la famille</h3><p class="whitespace-pre-wrap mt-2">{{ $c->attentes }}</p>@endif
+<dl class="grid sm:grid-cols-2 gap-4 mt-6 text-sm">
+@foreach(['Date de naissance'=>$c->enfant_date_naissance?->format('d/m/Y'),'Scolarisation'=>$c->scolarise===null ? 'Non précisée' : ($c->scolarise ? 'Oui' : 'Non'),'Langues à la maison'=>$c->langues_maison,'Niveau de langage'=>\App\Models\ConsultationRequest::LANGAGE_LABELS[$c->niveau_langage] ?? null,'Premières difficultés'=>$c->age_premieres_difficultes,'Accompagnements'=>implode(', ',$c->suivis ?? []),'Antécédents rapportés'=>$c->naissance_particuliere,'Traitement rapporté'=>$c->traitement_actuel] as $label=>$value)<div><dt class="text-gray-500">{{ $label }}</dt><dd class="mt-1 whitespace-pre-wrap">{{ $value ?: 'Non renseigné' }}</dd></div>@endforeach
+</dl>@if(!empty($c->diagnostics_anterieurs['types']))<p class="text-sm mt-4">Diagnostics rapportés : {{ implode(', ',$c->diagnostics_anterieurs['types']) }}. Par : {{ $c->diagnostics_anterieurs['par_qui'] ?? 'non précisé' }}.</p>@endif
+@if($c->observations)<h3 class="font-semibold mt-5">Observations de la famille</h3>@foreach($c->observations as $key=>$value)<p class="text-sm mt-1">{{ \App\Models\ConsultationRequest::OBSERVATION_LABELS[$key] ?? $key }} : {{ $value }}</p>@endforeach @endif
+</section>
+<section class="bg-white border rounded-xl p-6"><h2 class="text-xl font-bold">Documents privés</h2><p class="text-sm text-gray-500 mt-2">Les téléchargements sont tracés. Aucun document n’est joint aux e-mails.</p><div class="divide-y mt-4">@forelse($c->documents ?? [] as $i=>$doc)<a class="block py-3 text-purple-700 break-all" href="{{ route('admin.consultations.document',[$c,$i]) }}">{{ $doc['name'] }} · {{ number_format($doc['size']/1024,0,',',' ') }} Ko ↓</a>@empty<p class="text-gray-500">Aucun document. L’avis psychiatrique n’est pas obligatoire pour l’orientation.</p>@endforelse</div></section>
+<section class="space-y-4"><h2 class="text-xl font-bold">Rendez-vous et propositions</h2>
+@forelse($appointments as $a)
+<article class="bg-white border rounded-xl p-6"><div class="flex flex-wrap justify-between gap-3"><h3 class="font-bold">{{ $a->professional->name }} · {{ $a->professional->profession }}</h3><span class="text-purple-700">{{ \App\Models\Orientation\Appointment::LABELS[$a->status] ?? $a->status }}</span></div>
+<p class="mt-3">{{ $a->starts_at->timezone('Africa/Kinshasa')->format('d/m/Y à H:i') }} (Kinshasa) · {{ $a->duration_minutes }} min · {{ number_format($a->fee_cents/100,2,',',' ') }} USD</p><p class="text-sm text-gray-500 mt-2">{{ $a->mode==='centre' ? 'Au centre : '.$a->location : 'À distance' }} · {{ $a->purpose }}</p>
+@if($a->mode==='remote' && $a->meeting_url)<a class="text-purple-700 text-sm break-all block mt-2" rel="noopener noreferrer" target="_blank" href="{{ $a->meeting_url }}">Lien de séance</a>@endif
+<p class="text-sm text-gray-500 mt-2">Échéance de la proposition : {{ $a->expires_at?->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</p>
+@if($a->shared_summary)<div class="bg-green-50 rounded-lg p-4 mt-4"><h4 class="font-semibold">Synthèse partagée avec la famille</h4><p class="whitespace-pre-wrap mt-2">{{ $a->shared_summary }}</p></div>@endif
+@if($a->cancellation_reason)<p class="mt-3 text-sm">Motif : {{ $a->cancellation_reason }}</p>@endif
+@if(in_array($a->status,\App\Models\Orientation\Appointment::ACTIVE,true))
+<form method="POST" action="{{ $post }}" class="mt-4 flex flex-wrap gap-2">@csrf @method('PUT')<input type="hidden" name="appointment_id" value="{{ $a->id }}"><input class="border rounded-lg p-2 flex-1 min-w-0" name="reason" placeholder="Motif à communiquer à la famille" minlength="5" required><button name="action" value="cancel" class="border border-red-200 text-red-700 rounded-lg px-3 py-2">Annuler pour reporter</button>@if($a->status==='confirmed' && $a->starts_at->isPast())<button name="action" value="no_show" class="border rounded-lg px-3 py-2">Signaler une absence</button>@endif</form>@endif
+@foreach($a->payments as $p)
+<div class="border rounded-lg p-4 mt-4 bg-gray-50"><p class="font-semibold">Paiement {{ $p->reference }}</p><p class="text-sm mt-2">{{ $p->gateway==='manual' ? 'Paiement électronique à vérifier' : 'MaxiCash' }} · {{ number_format($p->amount_cents/100,2,',',' ') }} USD · {{ ['pending'=>'En attente','starting'=>'Initialisation','verification_required'=>'À vérifier','paid'=>'Règlement vérifié','failed'=>'Non confirmé'][$p->status] ?? $p->status }}</p><p class="text-sm mt-1">Référence déclarée : {{ $p->transaction_reference ?: 'Aucune' }}</p>@if($p->review_note)<p class="text-sm text-amber-900 mt-2">{{ $p->review_note }}</p>@endif
+@if($p->status!=='paid')
+<form method="POST" action="{{ $post }}" class="mt-3 space-y-3">@csrf @method('PUT')<input type="hidden" name="payment_id" value="{{ $p->id }}"><label class="block text-sm">Référence de transaction vérifiée<input name="transaction_reference" value="{{ $p->transaction_reference }}" class="block border rounded-lg p-2 w-full mt-1" minlength="5" required></label><label class="block text-sm">Justification de vérification<textarea name="review_note" class="block border rounded-lg p-2 w-full mt-1" minlength="10" required></textarea></label><label class="flex gap-2 text-sm"><input type="checkbox" name="verified" value="1" required> J’ai contrôlé la réception ou l’absence de règlement sur le compte marchand ; une capture seule ne suffit pas.</label><div class="flex flex-wrap gap-2"><button name="action" value="payment_verify" class="bg-green-700 text-white rounded-lg px-3 py-2">Règlement reçu et vérifié</button><button name="action" value="payment_reject" class="border rounded-lg px-3 py-2">Règlement non reçu</button></div></form>@endif
+</div>@endforeach
+@if($a->refund_status!=='none')
+<form method="POST" action="{{ $post }}" class="mt-4 border border-amber-200 rounded-lg p-4 space-y-3">@csrf @method('PUT')<input type="hidden" name="action" value="refund"><input type="hidden" name="appointment_id" value="{{ $a->id }}"><p class="font-semibold">Régularisation financière : {{ ['review'=>'À examiner','refunded'=>'Remboursement effectué','credited'=>'Avoir / report convenu','not_required'=>'Traitée'][$a->refund_status] ?? $a->refund_status }}</p><select name="refund_status" class="border p-2 rounded-lg"><option value="review">À examiner</option><option value="refunded">Remboursement effectué</option><option value="credited">Avoir / report convenu</option><option value="not_required">Régularisation non nécessaire</option></select><textarea name="reason" class="border rounded-lg p-2 w-full" placeholder="Décision, accord de la famille et référence du justificatif" minlength="5" required>{{ $a->refund_note }}</textarea><label class="flex gap-2 text-sm"><input type="checkbox" name="verified" value="1" required> Je confirme la décision et les opérations réellement effectuées. Ce formulaire ne déclenche aucun transfert.</label><button class="border rounded-lg p-2">Enregistrer la régularisation</button></form>@endif
+</article>@empty<p class="text-gray-500">Aucun rendez-vous proposé.</p>@endforelse
+</section>
+@if($authorized && !in_array($c->status,['annulee','autorisation_refusee'],true))
+<form method="POST" action="{{ $post }}" class="bg-purple-50 border border-purple-100 rounded-xl p-6 space-y-4">@csrf @method('PUT')<input type="hidden" name="action" value="propose"><h2 class="text-xl font-bold">Préparer un rendez-vous</h2><p class="text-sm text-gray-600">Le professionnel confirme sa disponibilité, puis la famille accepte le créneau et le tarif. Toute modification nécessite une nouvelle proposition.</p>
+<div class="grid sm:grid-cols-2 gap-4">
+<label class="text-sm">Professionnel<select name="professional_id" required class="block w-full border rounded-lg p-2 mt-1"><option value="">Choisir…</option>@foreach($professionals as $p)<option value="{{ $p->id }}">{{ $p->name }} · {{ $p->profession }} · {{ number_format($p->default_fee_cents/100,2) }} USD</option>@endforeach</select></label>
+<label class="text-sm">Type<select name="kind" class="block w-full border rounded-lg p-2 mt-1"><option value="orientation">Entretien d’orientation</option><option value="evaluation">Évaluation proposée par le clinicien</option><option value="follow_up">Suivi</option></select></label>
+<label class="text-sm">Date et heure<input type="datetime-local" name="starts_at" required class="block w-full border rounded-lg p-2 mt-1"></label><label class="text-sm">Fuseau de saisie<input name="timezone" value="Africa/Kinshasa" required class="block w-full border rounded-lg p-2 mt-1"></label>
+<label class="text-sm">Durée (minutes)<input type="number" name="duration_minutes" min="10" max="240" value="{{ \App\Services\Orientation\Settings::get('default_duration_minutes') }}" required class="block w-full border rounded-lg p-2 mt-1"></label><label class="text-sm">Tarif USD (0 = gratuit)<input type="number" name="fee_usd" value="0" min="0" max="100000" step=".01" required class="block w-full border rounded-lg p-2 mt-1"></label>
+<label class="text-sm">Mode<select name="mode" class="block w-full border rounded-lg p-2 mt-1"><option value="remote">À distance</option><option value="centre">Au centre</option></select></label>
+<label class="text-sm">Réponse et paiement attendus avant<input type="datetime-local" name="expires_at" required class="block w-full border rounded-lg p-2 mt-1"><span class="text-xs text-gray-500">Même fuseau ; avant le début de la séance.</span></label>
+<label class="text-sm">Lien HTTPS de séance, si à distance<input type="url" name="meeting_url" class="block w-full border rounded-lg p-2 mt-1" placeholder="https://meet.google.com/…"></label><label class="text-sm">Adresse, si au centre<input name="location" value="{{ \App\Services\Orientation\Settings::get('centre_address') }}" class="block w-full border rounded-lg p-2 mt-1"></label></div>
+<label class="block text-sm">Objectif présenté à la famille<textarea name="purpose" minlength="10" maxlength="2000" required class="block border rounded-lg p-3 w-full mt-1">Premier échange pour comprendre vos préoccupations et proposer les prochaines étapes adaptées.</textarea></label>
+@if(!\App\Services\Orientation\Settings::paymentAvailable())<p class="text-sm text-amber-900">Les séances gratuites sont disponibles. Configurez un paiement électronique avant de proposer un tarif supérieur à zéro.</p>@endif
+<button class="bg-purple-700 text-white px-5 py-3 rounded-lg">Solliciter ce professionnel</button></form>@endif
+<section class="bg-white border rounded-xl p-6"><h2 class="text-xl font-bold">Échanges avec la famille</h2><div class="space-y-4 my-5">@forelse($messages as $m)<div class="bg-gray-50 rounded-lg p-4"><p class="text-xs text-gray-500">{{ $m->author }} · {{ $m->created_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</p><p class="whitespace-pre-wrap mt-2">{{ $m->body }}</p></div>@empty<p class="text-gray-500">Aucun échange.</p>@endforelse</div>
+@if($authorized && $c->status!=='annulee')<form method="POST" action="{{ $post }}" class="space-y-3">@csrf @method('PUT')<label class="block font-semibold">Message ou éléments à compléter<textarea name="body" required minlength="10" maxlength="4000" class="block border rounded-lg p-3 mt-2 w-full" rows="4"></textarea></label><div class="flex flex-wrap gap-2"><button name="action" value="message" class="bg-purple-700 text-white rounded-lg px-4 py-2">Envoyer un message</button><button name="action" value="information" class="border rounded-lg px-4 py-2">Demander des compléments</button></div></form>@endif
+</section>
 </div>
+<aside class="space-y-6 min-w-0">
+<section class="bg-white border rounded-xl p-6 text-sm"><h2 class="text-lg font-bold mb-4">Demandeur et autorisation</h2><p class="font-semibold">{{ $c->parent_nom_complet }}</p><p class="mt-1">{{ ['mere'=>'Mère','pere'=>'Père','tuteur'=>'Tuteur / représentant légal','tiers'=>'Tiers autorisé','professionnel'=>'Professionnel orientant'][$c->parent_lien] ?? $c->parent_lien }} {{ $c->parent_lien_autre }}</p><p class="mt-3 break-all">{{ $c->email }}</p><p>{{ $c->telephone ?: $c->whatsapp }}</p><p class="mt-2">{{ $c->ville }}, {{ $c->pays }} · {{ $c->fuseau_horaire }}</p><p>Langue : {{ $c->langue_seance }}</p><p>Préférence : {{ ['remote'=>'À distance','centre'=>'Au centre','either'=>'À distance ou au centre'][$c->consultation_mode] ?? 'Non précisée' }}</p><hr class="my-4"><p>Représentant : {{ $c->guardian_name ?: 'À vérifier' }}</p><p class="break-all">{{ $c->guardian_email }}</p><p>Autorisation : <strong>{{ ['pending'=>'En attente','declared'=>'Déclaration du responsable enregistrée','approved'=>'Autorisation reçue','refused'=>'Refusée','legacy'=>'À vérifier'][$c->authority_status] ?? $c->authority_status }}</strong></p>
+@if($c->processing_due_at)<hr class="my-4"><p>Première réponse prévue avant {{ $c->processing_due_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</p><p class="mt-2">{{ $c->first_response_at ? 'Première réponse apportée.' : 'Aucune première réponse enregistrée.' }}</p>@endif
+</section>
+@if($c->authority_status==='pending')<form method="POST" action="{{ $post }}" class="bg-amber-50 border rounded-xl p-6 space-y-3">@csrf @method('PUT')<input type="hidden" name="action" value="guardian_contact"><h2 class="font-bold">Vérifier le représentant légal</h2><label class="block text-sm">Nom complet<input name="guardian_name" value="{{ $c->guardian_name }}" required class="block w-full border rounded-lg p-2 mt-1"></label><label class="block text-sm">E-mail<input type="email" name="guardian_email" value="{{ $c->guardian_email }}" required class="block w-full border rounded-lg p-2 mt-1"></label><label class="flex gap-2 text-sm"><input type="checkbox" name="verified" value="1" required> J’ai vérifié ces coordonnées avec le demandeur.</label><button class="border rounded-lg p-2">Enregistrer et renvoyer l’autorisation</button></form>@endif
+<section class="bg-white border rounded-xl p-6"><h2 class="font-bold">Disponibilités proposées</h2>@foreach($c->creneauxFormates() as $slot)<p class="text-sm mt-3">{{ $slot['kinshasa'] }} (Kinshasa)<br><span class="text-gray-500">{{ $slot['parent'] }} chez la famille</span></p>@endforeach</section>
+<form method="POST" action="{{ $post }}" class="bg-white border rounded-xl p-6">@csrf @method('PUT')<input type="hidden" name="action" value="notes"><label class="font-bold">Notes administratives privées<textarea name="notes_internes" class="block border rounded-lg p-3 mt-3 w-full" rows="5" maxlength="10000">{{ $c->notes_internes }}</textarea></label><button class="border rounded-lg px-3 py-2 mt-3">Enregistrer</button></form>
+<section class="bg-white border rounded-xl p-6"><h2 class="font-bold">Historique</h2>@forelse($events as $event)<div class="border-l-2 border-purple-200 pl-3 mt-4"><p class="text-sm">{{ $event->label }} @if(!$event->public)<span class="text-gray-400">(interne)</span>@endif</p><p class="text-xs text-gray-400 mt-1">{{ \Carbon\Carbon::parse($event->created_at)->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</p></div>@empty<p class="text-gray-500 mt-3">Aucun événement.</p>@endforelse</section>
+@if($mailIssues->count())<section class="bg-amber-50 border rounded-xl p-6"><h2 class="font-bold">E-mails en attente ou en échec</h2>@foreach($mailIssues as $notice)<form action="{{ $post }}" method="POST" class="mt-3 text-sm">@csrf @method('PUT')<input type="hidden" name="action" value="retry_mail"><input type="hidden" name="notice_id" value="{{ $notice->id }}"><p>{{ $notice->title }} · {{ $notice->email_status }}</p><button class="underline mt-1">Remettre en file</button></form>@endforeach</section>@endif
+@if($c->status!=='annulee')<details class="bg-white border rounded-xl p-6"><summary class="text-red-700 cursor-pointer">Clôturer la demande</summary><form method="POST" action="{{ $post }}" class="mt-3 space-y-3">@csrf @method('PUT')<input type="hidden" name="action" value="close"><textarea name="body" required minlength="10" class="border rounded-lg w-full p-3" placeholder="Motif et information à communiquer à la famille"></textarea><button class="border border-red-200 rounded-lg p-2 text-red-700">Clôturer et informer</button></form></details>@endif
+</aside></div>
 @endsection

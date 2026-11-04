@@ -2,100 +2,116 @@
 
 namespace Tests\Feature;
 
-use App\Mail\ConsultationRequestNotificationMail;
-use App\Mail\ConsultationRequestReceivedMail;
 use App\Models\ConsultationRequest;
+use App\Models\Orientation\AccessLink;
+use App\Models\Orientation\Draft;
+use App\Models\Orientation\Notice;
+use App\Services\Orientation\Access;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
+use Illuminate\Support\Str;
+use Tests\OrientationTestCase;
 
-class ConsultationRequestTest extends TestCase
+class ConsultationRequestTest extends OrientationTestCase
 {
-    protected function setUp(): void
+    public function test_verified_contact_is_required_even_on_legacy_submission_url(): void
     {
-        parent::setUp();
-        // Les anciennes migrations du projet ne tournent pas sur SQLite : on ne charge que celle-ci
-        $this->artisan('migrate:fresh', ['--path' => [
-            'database/migrations/2026_10_26_000000_create_consultation_requests_table.php',
-            'database/migrations/2026_10_27_000000_add_scheduling_fields_to_consultation_requests_table.php',
-        ]]);
-    }
-
-    private function payload(array $overrides = []): array
-    {
-        return array_merge([
-            'parent_nom' => 'Mbuyi', 'parent_prenom' => 'Grace', 'parent_lien' => 'mere',
-            'pays' => 'France', 'ville' => 'Paris', 'fuseau_horaire' => 'Europe/Paris',
-            'email' => 'grace@example.com', 'whatsapp' => '+33612345678', 'langue_seance' => 'francais',
-            'enfant_nom' => 'Mbuyi', 'enfant_prenom' => 'David', 'enfant_sexe' => 'M',
-            'enfant_date_naissance' => '2020-03-14',
-            'motif' => 'Retard de langage et difficultés à jouer avec les autres enfants.',
-            'observations' => ['regard' => 'parfois', 'inconnu' => 'souvent'],
-            'creneaux' => [['start' => now()->addDays(3)->toIso8601String()]],
-            'plateforme' => 'meet',
-            'consentement_donnees' => true, 'engagement_avis_psychiatre' => true, 'acceptation_conditions' => true,
-        ], $overrides);
-    }
-
-    public function test_parent_can_submit_a_consultation_request_with_documents(): void
-    {
-        Mail::fake();
-        Storage::fake('local');
-
-        $response = $this->post('/api/consultations', [
-            'payload' => json_encode($this->payload()),
-            'documents' => [UploadedFile::fake()->create('bilan.pdf', 500, 'application/pdf')],
-        ], ['Accept' => 'application/json']);
-
-        $response->assertCreated()->assertJsonPath('success', true);
-
-        $consultation = ConsultationRequest::firstOrFail();
-        $this->assertSame($response->json('reference'), $consultation->reference);
-        $this->assertSame('nouvelle', $consultation->status);
-        $this->assertSame(['regard' => 'parfois'], $consultation->observations);
-        $this->assertNotNull($consultation->consented_at);
-        $this->assertCount(1, $consultation->documents);
-        Storage::disk('local')->assertExists($consultation->documents[0]['path']);
-
-        Mail::assertSent(ConsultationRequestReceivedMail::class, fn ($mail) => $mail->hasTo('grace@example.com'));
-        Mail::assertSent(ConsultationRequestNotificationMail::class, fn ($mail) => $mail->hasTo(config('services.nlc.secretariat_email')));
-    }
-
-    public function test_emails_render_both_time_zones(): void
-    {
-        $consultation = ConsultationRequest::create($this->payload([
-            'creneaux' => [['start' => '2030-06-10T09:00:00Z']],
-            'consented_at' => now(),
-        ]));
-
-        $html = (new ConsultationRequestNotificationMail($consultation))->render();
-        $this->assertStringContainsString('10:00', $html); // Kinshasa = UTC+1
-        $this->assertStringContainsString('11:00', $html); // Paris l'été = UTC+2
-
-        $this->assertStringContainsString($consultation->reference, (new ConsultationRequestReceivedMail($consultation))->render());
-    }
-
-    public function test_consents_and_required_fields_are_enforced(): void
-    {
-        $response = $this->postJson('/api/consultations', [
-            'payload' => json_encode($this->payload([
-                'consentement_donnees' => false,
-                'motif' => '',
-                'creneaux' => [['start' => now()->subDay()->toIso8601String()]],
-            ])),
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['consentement_donnees', 'motif', 'creneaux.0.start']);
+        $this->postJson('/api/consultations', ['payload' => json_encode($this->payload())])->assertUnauthorized();
         $this->assertSame(0, ConsultationRequest::count());
     }
 
-    public function test_access_token_is_never_exposed(): void
+    public function test_access_links_are_hashed_single_use_and_expire_without_automatic_get_login(): void
     {
-        $consultation = ConsultationRequest::create($this->payload(['consented_at' => now()]));
+        $this->postJson('/api/orientation/access/request', ['email' => 'GRACE@example.test', 'name' => 'Grace', 'type' => 'family'])->assertOk();
+        $notice = Notice::firstOrFail();
+        parse_str(parse_url($notice->action_url, PHP_URL_FRAGMENT), $query);
+        $this->assertNotSame($query['token'], AccessLink::first()->token_hash);
+        $this->assertStringNotContainsString($query['token'], $notice->getRawOriginal('action_url'));
+        $this->getJson('/api/orientation/me')->assertUnauthorized();
+        $this->postJson('/api/orientation/access/consume', $query)->assertOk()->assertJsonPath('actor.email', 'grace@example.test');
+        $this->postJson('/api/orientation/access/consume', $query)->assertUnprocessable();
+        $this->postJson('/api/orientation/logout')->assertOk();
+        app(Access::class)->issue('family', \App\Models\Orientation\Contact::first());
+        parse_str(parse_url(Notice::latest('id')->first()->action_url, PHP_URL_FRAGMENT), $query);
+        $this->travel(31)->minutes();
+        $this->postJson('/api/orientation/access/consume', $query)->assertUnprocessable();
+    }
 
-        $this->assertSame(64, strlen($consultation->access_token));
-        $this->assertArrayNotHasKey('access_token', $consultation->toArray());
+    public function test_parent_can_submit_without_psychiatric_opinion_with_private_documents(): void
+    {
+        $actor = $this->family();
+        $this->loginActor($actor);
+        $this->post('/api/consultations', ['payload' => json_encode($this->payload(['email' => 'spoof@example.test'])), 'submission_key' => (string) Str::uuid(), 'documents' => [UploadedFile::fake()->create('bilan.pdf', 10, 'application/pdf')]], ['Accept' => 'application/json'])->assertCreated()->assertJsonPath('full_access', true);
+        $c = ConsultationRequest::firstOrFail();
+        $this->assertSame($actor->email, $c->email);
+        $this->assertFalse($c->engagement_avis_psychiatre);
+        $this->assertEquals(72, $c->created_at->diffInHours($c->processing_due_at));
+        Storage::disk('local')->assertExists($c->documents[0]['path']);
+        $this->getJson('/api/orientation/requests/'.$c->id)->assertJsonMissingPath('notes_internes')->assertJsonMissingPath('access_token')->assertJsonMissingPath('documents.0.path');
+        foreach (Notice::all() as $n) {
+            $this->assertStringNotContainsString($c->motif, $n->body);
+            $this->assertStringNotContainsString('David', $n->body);
+        }
+    }
+
+    public function test_consents_minority_and_future_availability_are_enforced(): void
+    {
+        $actor = $this->family();
+        $this->loginActor($actor);
+        $this->postJson('/api/orientation/requests', ['payload' => json_encode($this->payload(['authority_consent' => false, 'consentement_donnees' => false, 'enfant_date_naissance' => now()->subYears(18)->toDateString(), 'creneaux' => [['start' => now()->subDay()->toIso8601String()]]])), 'submission_key' => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors(['authority_consent', 'consentement_donnees', 'enfant_date_naissance', 'creneaux.0.start']);
+        $this->assertSame(0, ConsultationRequest::count());
+    }
+
+    public function test_draft_is_encrypted_and_isolated_between_families(): void
+    {
+        $a = $this->family();
+        $b = $this->family('other@example.test');
+        $this->loginActor($a)->putJson('/api/orientation/draft', ['data' => ['motif' => 'CONFIDENTIEL', 'inconnu' => 'ne doit pas être conservé']])->assertOk();
+        $raw = Draft::firstOrFail()->getRawOriginal('data');
+        $this->assertStringNotContainsString('CONFIDENTIEL', $raw);
+        $this->getJson('/api/orientation/draft')->assertJsonPath('data.motif', 'CONFIDENTIEL')->assertJsonMissingPath('data.inconnu');
+        $this->loginActor($b)->getJson('/api/orientation/draft')->assertJsonPath('data', []);
+    }
+
+    public function test_third_party_needs_distinct_guardian_and_cannot_read_documents_before_approval(): void
+    {
+        $a = $this->family();
+        $this->loginActor($a);
+        $extra = ['parent_lien' => 'tiers', 'parent_lien_autre' => 'Tante', 'guardian_name' => 'Responsable légal', 'guardian_email' => strtoupper($a->email)];
+        $this->postJson('/api/orientation/requests', ['payload' => json_encode($this->payload($extra)), 'submission_key' => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors('guardian_email');
+        $extra['guardian_email'] = 'guardian@example.test';
+        $c = $this->submit($a, $extra);
+        $this->getJson('/api/orientation/requests/'.$c->id)->assertOk()->assertJsonPath('full_access', false)->assertJsonMissingPath('data.motif');
+        $this->getJson('/api/orientation/requests/'.$c->id.'/documents/0')->assertNotFound();
+        $this->postJson('/api/orientation/requests/'.$c->id.'/guardian', ['approve' => true, 'authority_consent' => true])->assertNotFound();
+        $guardian = \App\Models\Orientation\Contact::findOrFail($c->guardian_contact_id);
+        $this->loginActor($guardian)->postJson('/api/orientation/requests/'.$c->id.'/guardian', ['approve' => true, 'authority_consent' => true])->assertOk();
+        $this->loginActor($a)->getJson('/api/orientation/requests/'.$c->id)->assertJsonPath('full_access', true);
+    }
+
+    public function test_duplicate_submission_does_not_create_duplicate_dossiers_or_notifications(): void
+    {
+        $a = $this->family();
+        $this->loginActor($a);
+        $body = ['payload' => json_encode($this->payload()), 'submission_key' => (string) Str::uuid()];
+        $first = $this->postJson('/api/orientation/requests', $body)->assertCreated()->json('id');
+        $count = Notice::count();
+        $this->postJson('/api/orientation/requests', $body)->assertCreated()->assertJsonPath('id', $first);
+        $this->assertSame(1, ConsultationRequest::count());
+        $this->assertSame($count, Notice::count());
+    }
+
+    public function test_files_and_notifications_are_scoped_to_the_authorized_family(): void
+    {
+        $a = $this->family();
+        $c = $this->submit($a);
+        $this->post('/api/orientation/requests/'.$c->id.'/documents', ['file' => UploadedFile::fake()->create('bilan.pdf', 10, 'application/pdf')], ['Accept' => 'application/json'])->assertCreated();
+        $this->post('/api/orientation/requests/'.$c->id.'/documents', ['file' => UploadedFile::fake()->create('script.php', 10, 'text/x-php')], ['Accept' => 'application/json'])->assertUnprocessable();
+        $this->get('/api/orientation/requests/'.$c->id.'/documents/0')->assertOk()->assertDownload('bilan.pdf');
+        $notice = Notice::where('actor_id', $a->id)->firstOrFail();
+        $this->getJson('/api/orientation/notifications')->assertJsonMissingPath('0.action_url');
+        $this->loginActor($this->family('other@example.test'))->getJson('/api/orientation/requests/'.$c->id)->assertNotFound();
+        $this->getJson('/api/orientation/requests/'.$c->id.'/documents/0')->assertNotFound();
+        $this->postJson('/api/orientation/notifications/'.$notice->id.'/read')->assertNotFound();
     }
 }

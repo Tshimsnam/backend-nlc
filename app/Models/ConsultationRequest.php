@@ -8,10 +8,15 @@ use Illuminate\Support\Str;
 
 class ConsultationRequest extends Model
 {
-    public const STATUSES = ['nouvelle', 'dossier_incomplet', 'rdv_programme', 'seance_faite', 'annulee'];
+    public const STATUSES = ['nouvelle', 'autorisation_attendue', 'autorisation_refusee', 'dossier_incomplet', 'attribution_en_attente', 'proposition_envoyee', 'paiement_en_attente', 'rdv_programme', 'seance_faite', 'annulee'];
 
     public const STATUS_LABELS = [
         'nouvelle'          => 'Nouvelle',
+        'autorisation_attendue' => 'Autorisation du représentant attendue',
+        'autorisation_refusee' => 'Autorisation refusée',
+        'attribution_en_attente' => 'Disponibilité du professionnel attendue',
+        'proposition_envoyee' => 'Proposition envoyée',
+        'paiement_en_attente' => 'Paiement attendu',
         'dossier_incomplet' => 'Dossier incomplet',
         'rdv_programme'     => 'RDV programmé',
         'seance_faite'      => 'Séance faite',
@@ -81,6 +86,11 @@ class ConsultationRequest extends Model
         'seance_programmee_at' => 'datetime',
         'prix' => 'decimal:2',
         'confirmation_envoyee_at' => 'datetime',
+        'processing_due_at' => 'datetime',
+        'first_response_at' => 'datetime',
+        'sla_alerted_at' => 'datetime',
+        'guardian_approved_at' => 'datetime',
+        'information_requested_at' => 'datetime',
     ];
 
     protected static function booted(): void

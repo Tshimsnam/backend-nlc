@@ -1,94 +1,22 @@
 @extends('admin.consultations.layout')
-
-@section('title', 'Consultations à distance')
-
+@section('title','Demandes d’orientation')
 @section('header')
-    <h2 class="text-3xl font-bold text-gray-800">Consultations à distance</h2>
-    <p class="text-gray-600 mt-1">Bienvenue, {{ $user->name ?? '' }} - heures affichées en heure de Kinshasa</p>
+<div class="flex flex-wrap justify-between gap-4"><div><p class="text-purple-600 text-sm font-semibold">PARCOURS FAMILLES</p><h1 class="text-3xl font-bold mt-2">Demandes d’orientation</h1><p class="text-gray-500 mt-2">Une première réponse sous 72 heures. Horaires affichés en heure de Kinshasa.</p></div>
+<div class="flex flex-wrap gap-2 items-start"><a class="border bg-white rounded-lg px-4 py-2" href="{{ route('admin.consultations.professionals') }}">Professionnels</a><a class="border bg-white rounded-lg px-4 py-2" href="{{ route('admin.consultations.settings') }}">Configuration</a></div></div>
 @endsection
-
 @section('content')
-    @php
-        $total = $counts->sum();
-        $tabs = ['' => 'Toutes'] + \App\Models\ConsultationRequest::STATUS_LABELS;
-    @endphp
-
-    {{-- Filtres par statut --}}
-    <div class="flex flex-wrap gap-2 mb-6">
-        @foreach($tabs as $key => $label)
-            @php $active = (string) $status === (string) $key; @endphp
-            <a href="{{ route('admin.consultations.index', array_filter(['status' => $key, 'search' => $search])) }}"
-               class="px-4 py-2 rounded-lg text-sm font-medium transition {{ $active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border hover:bg-gray-50' }}">
-                {{ $label }}
-                <span class="ml-1 {{ $active ? 'text-blue-100' : 'text-gray-400' }}">{{ $key === '' ? $total : ($counts[$key] ?? 0) }}</span>
-            </a>
-        @endforeach
-    </div>
-
-    {{-- Recherche --}}
-    <form method="GET" action="{{ route('admin.consultations.index') }}" class="mb-6 flex gap-2">
-        @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
-        <input type="search" name="search" value="{{ $search }}" placeholder="Rechercher : n° de dossier, nom, e-mail, WhatsApp, pays…"
-               class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-        <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium">Rechercher</button>
-        @if($search)
-            <a href="{{ route('admin.consultations.index', array_filter(['status' => $status])) }}" class="px-4 py-2 rounded-lg border bg-white text-gray-600 hover:bg-gray-50">Effacer</a>
-        @endif
-    </form>
-
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        @if($consultations->isEmpty())
-            <div class="p-12 text-center text-gray-500">
-                Aucune demande {{ $search ? 'ne correspond à cette recherche' : 'pour le moment' }}.
-            </div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600 text-left">
-                        <tr>
-                            <th class="px-4 py-3 font-semibold">Dossier</th>
-                            <th class="px-4 py-3 font-semibold">Enfant</th>
-                            <th class="px-4 py-3 font-semibold">Parent</th>
-                            <th class="px-4 py-3 font-semibold">Séance / 1er créneau proposé</th>
-                            <th class="px-4 py-3 font-semibold">Statut</th>
-                            <th class="px-4 py-3 font-semibold">Reçue le</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y">
-                        @foreach($consultations as $c)
-                            @php
-                                $premier = $c->creneaux[0]['start'] ?? null;
-                            @endphp
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 font-mono text-xs">{{ $c->reference }}</td>
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-900">{{ $c->enfant_prenom }} {{ $c->enfant_nom }}</div>
-                                    <div class="text-xs text-gray-500">{{ $c->enfant_date_naissance->age }} ans - {{ $c->enfant_sexe === 'F' ? 'fille' : 'garçon' }}</div>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="text-gray-900">{{ $c->parent_nom_complet }}</div>
-                                    <div class="text-xs text-gray-500">{{ $c->ville }}, {{ $c->pays }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-gray-700">
-                                    @if($c->seance_programmee_at)
-                                        <span class="font-medium text-blue-700">{{ $c->seance_programmee_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</span>
-                                    @elseif($premier)
-                                        <span class="text-gray-500">{{ \Carbon\Carbon::parse($premier)->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</span>
-                                        <span class="text-xs text-gray-400">(proposé)</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3">@include('admin.consultations._status-badge', ['status' => $c->status])</td>
-                                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ $c->created_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</td>
-                                <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('admin.consultations.show', $c) }}" class="text-blue-600 hover:underline font-medium">Ouvrir</a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="px-4 py-3 border-t">{{ $consultations->links() }}</div>
-        @endif
-    </div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+@foreach(['nouvelle'=>'Nouvelles','autorisation_attendue'=>'Autorisations attendues','paiement_en_attente'=>'Paiements attendus','rdv_programme'=>'Rendez-vous confirmés'] as $key=>$label)
+<a href="{{ route('admin.consultations.index',['status'=>$key]) }}" class="bg-white border rounded-xl p-5"><p class="text-gray-500 text-sm">{{ $label }}</p><strong class="block text-3xl mt-2">{{ $counts[$key] ?? 0 }}</strong></a>
+@endforeach
+</div>
+@if($lateCount)<a href="{{ route('admin.consultations.index',['late'=>1]) }}" class="block bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-xl mb-6">{{ $lateCount }} demande(s) sans première réponse après 72 heures — ouvrir les dossiers à traiter.</a>@endif
+<form method="GET" class="flex flex-wrap gap-3 mb-5"><input aria-label="Rechercher un dossier" name="search" value="{{ $search }}" placeholder="Référence, parent, enfant ou e-mail" class="border rounded-lg px-4 py-2 flex-1 min-w-0">
+<select aria-label="Statut" name="status" class="border rounded-lg px-3 py-2 max-w-full"><option value="">Tous les statuts</option>@foreach(\App\Models\ConsultationRequest::STATUS_LABELS as $key=>$label)<option value="{{ $key }}" @selected($status===$key)>{{ $label }}</option>@endforeach</select>
+<button class="bg-purple-700 text-white rounded-lg px-5 py-2">Filtrer</button><a href="{{ route('admin.consultations.index') }}" class="px-3 py-2">Réinitialiser</a></form>
+<div class="bg-white border rounded-xl overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500"><tr><th class="p-4">Dossier</th><th class="p-4">Famille</th><th class="p-4">Statut</th><th class="p-4">Première réponse</th><th class="p-4"></th></tr></thead><tbody class="divide-y">
+@forelse($consultations as $c)<tr><td class="p-4"><strong>{{ $c->reference }}</strong><p class="text-gray-500 mt-1">{{ $c->created_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</p></td><td class="p-4">{{ $c->enfant_nom_complet }}<p class="text-gray-500 mt-1">{{ $c->parent_nom_complet }}</p></td><td class="p-4"><span class="bg-purple-50 text-purple-800 rounded-full px-3 py-1 inline-block">{{ \App\Models\ConsultationRequest::STATUS_LABELS[$c->status] ?? $c->status }}</span></td>
+<td class="p-4">@if($c->first_response_at)<span class="text-green-700">Réponse apportée</span>@elseif($c->processing_due_at)<span class="{{ $c->processing_due_at->isPast() ? 'text-red-700 font-semibold' : 'text-gray-600' }}">{{ $c->processing_due_at->timezone('Africa/Kinshasa')->format('d/m/Y H:i') }}</span>@else<span class="text-gray-400">Dossier antérieur</span>@endif</td><td class="p-4"><a class="text-purple-700 font-semibold" href="{{ route('admin.consultations.show',$c) }}">Ouvrir →</a></td></tr>
+@empty<tr><td colspan="5" class="p-12 text-center text-gray-500">Aucune demande ne correspond à ces critères.</td></tr>@endforelse
+</tbody></table></div><div class="mt-5">{{ $consultations->links() }}</div>
 @endsection
