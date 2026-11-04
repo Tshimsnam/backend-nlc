@@ -3,8 +3,20 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Admin\OrientationAdminController as ConsultationAdminController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\AuthController;
+
+require __DIR__.'/consortium.php';
+require __DIR__.'/orientation.php';
+
+Route::prefix('admin/consortium')->name('admin.consortium.')->middleware(\App\Http\Middleware\ConsortiumAdmin::class)->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\ConsortiumController::class, 'index'])->name('index');
+    Route::get('/{application}', [\App\Http\Controllers\Admin\ConsortiumController::class, 'show'])->name('show');
+    Route::put('/{application}', [\App\Http\Controllers\Admin\ConsortiumController::class, 'update'])->name('update');
+    Route::get('/{application}/documents/{document}', [\App\Http\Controllers\Admin\ConsortiumController::class, 'download'])->name('documents.download');
+    Route::put('/{application}/documents/{document}', [\App\Http\Controllers\Admin\ConsortiumController::class, 'reviewDocument'])->name('documents.review');
+});
 
 Route::get('/', function () {
     return view('welcome');
@@ -63,6 +75,20 @@ Route::get('/admin/evaluation/{id}', [DashboardController::class, 'showEvaluatio
 Route::post('/admin/configuration/save', [DashboardController::class, 'saveConfiguration'])->name('admin.configuration.save');
 Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
 Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
+
+// Consultations à distance (espace secrétariat)
+Route::prefix('admin/consultations')->name('admin.consultations.')->middleware(\App\Http\Middleware\OrientationAdmin::class)->group(function () {
+    Route::get('/professionnels', [ConsultationAdminController::class, 'professionals'])->name('professionals');
+    Route::post('/professionnels', [ConsultationAdminController::class, 'saveProfessional'])->name('professionals.store');
+    Route::put('/professionnels/{professional}', [ConsultationAdminController::class, 'saveProfessional'])->name('professionals.update');
+    Route::get('/configuration', [ConsultationAdminController::class, 'settings'])->name('settings');
+    Route::put('/configuration', [ConsultationAdminController::class, 'saveSettings'])->name('settings.update');
+    Route::get('/', [ConsultationAdminController::class, 'index'])->name('index');
+    Route::get('/{consultation}', [ConsultationAdminController::class, 'show'])->name('show');
+    Route::put('/{consultation}', [ConsultationAdminController::class, 'update'])->name('update');
+    Route::get('/{consultation}/documents/{index}', [ConsultationAdminController::class, 'document'])
+        ->whereNumber('index')->name('document');
+});
 
 // Routes Admin Dashboard (API JSON)
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only'])->group(function () {

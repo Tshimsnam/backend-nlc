@@ -123,11 +123,12 @@ class AuthController extends Controller
         $token = $user->createToken('admin_token')->plainTextToken;
 
         // Stocker le token dans la session
+        $request->session()->regenerate();
         $request->session()->put('admin_token', $token);
         $request->session()->put('admin_user', $user);
 
         // Rediriger vers le dashboard
-        return redirect()->route('admin.dashboard.view');
+        return redirect()->intended(route('admin.dashboard.view'));
     }
 
     public function logout(Request $request)

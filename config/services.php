@@ -65,4 +65,9 @@ return [
         'api_url' => env('ORANGE_MONEY_API_URL', 'https://api.orange.com/orange-money-webpay/dev/v1'),
     ],
 
+    'nlc' => [
+        // Adresse du secrétariat qui reçoit les demandes de consultation à distance
+        'secretariat_email' => env('NLC_SECRETARIAT_EMAIL', 'info@nlcrdc.org'),
+    ],
+
 ];

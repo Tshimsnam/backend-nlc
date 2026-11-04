@@ -32,6 +32,7 @@ use App\Http\Controllers\API\PhysicalTicketController;
 
 use App\Http\Controllers\API\QuizController;
 use App\Http\Controllers\API\ColloqueEvaluationController;
+use App\Http\Controllers\API\ConsultationRequestController;
 
 // --- Quiz anonyme (GSA 2026)
 // Routes génériques (rétrocompatibilité)
@@ -66,8 +67,12 @@ Route::get('/events/{eventId}/config', function ($eventId) {
     ]);
 });
 
+// --- Consultation à distance : inscription d'un enfant + demande de rendez-vous
+// Dépôt des consultations : routes/orientation.php (session et CSRF).
+Route::match(['get','post'], '/orientation/payment/callback', [\App\Http\Controllers\Orientation\PortalController::class, 'callback'])->middleware('throttle:30,1,orientation_callback')->name('orientation.payment.callback');
+
 // --- Événements (lecture publique)
-Route::get('/events', [APIEventController::class, 'index']);
+Route::get('/events',[APIEventController::class, 'index']);
 Route::get('/events/{event:slug}', [APIEventController::class, 'show'])->name('api.events.show.slug');
 Route::get('/events/id/{event}', [APIEventController::class, 'show'])->name('api.events.show.id');
 
