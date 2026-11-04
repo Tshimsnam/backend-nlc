@@ -11,7 +11,7 @@
         <!-- Logo/Header -->
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">NLC Admin</h1>
-            <p class="text-gray-600">Neuro Learning Center</p>
+            <p class="text-gray-600">Never Limit Children</p>
         </div>
 
         <!-- Login Card -->
