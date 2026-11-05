@@ -49,7 +49,7 @@ class SendOrientationMail implements ShouldBeUnique, ShouldQueue
 
             return;
         }
-        Mail::send('emails.orientation', ['notice' => $notice], fn ($mail) => $mail->to($notice->recipient)->subject('NLC — '.$notice->title));
+        Mail::send(['html' => 'emails.orientation', 'text' => 'emails.orientation-text'], ['notice' => $notice], fn ($mail) => $mail->to($notice->recipient)->subject('NLC — '.$notice->title));
         $notice->update(['email_status' => 'sent', 'sent_at' => now()]);
     }
 
