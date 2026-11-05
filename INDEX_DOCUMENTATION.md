@@ -12,6 +12,9 @@
 2. **APERCU_VISUEL_DASHBOARD.md** - Design et interface visuelle
 3. **README_SYSTEME_BILLETS.md** - Documentation technique complète
 
+### Vous déployez en production? Suivez:
+1. **DEPLOIEMENT_PRODUCTION.md** - Mise en production du backend et relais Vercel
+
 ---
 
 ## 📁 Structure de la Documentation
