@@ -73,7 +73,10 @@ Route::put('/admin/evaluation/questions/{id}', [DashboardController::class, 'upd
 Route::delete('/admin/evaluation/questions/{id}', [DashboardController::class, 'deleteEvalQuestion'])->name('admin.eval.questions.delete');
 Route::get('/admin/evaluation/{id}', [DashboardController::class, 'showEvaluation'])->name('admin.evaluation.show');
 Route::post('/admin/configuration/save', [DashboardController::class, 'saveConfiguration'])->name('admin.configuration.save');
-Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])->name('admin.events.update');
+Route::put('/admin/events/{id}/update', [DashboardController::class, 'updateEvent'])
+    ->middleware(\App\Http\Middleware\EventAdmin::class)->name('admin.events.update');
+Route::put('/admin/events/{event}/status', [\App\Http\Controllers\Admin\EventStatusController::class, 'update'])
+    ->middleware(\App\Http\Middleware\EventAdmin::class)->name('admin.events.status');
 Route::delete('/admin/event-prices/{id}', [DashboardController::class, 'deleteEventPrice'])->name('admin.event-prices.delete');
 
 // Consultations à distance (espace secrétariat)

@@ -12,21 +12,45 @@ class StoreEventRequest extends FormRequest
         return true;
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (!$this->hasAny(['date', 'end_date']) || $validator->errors()->has('date') || $validator->errors()->has('end_date')) {
+                return;
+            }
+            $event = $this->route('event');
+            $start = $this->input('date', $event instanceof \App\Models\Event ? $event->date : null);
+            $end = $this->input('end_date', $event instanceof \App\Models\Event ? $event->end_date : null);
+            if (is_string($start) && is_string($end) && $end !== '' && $end < $start) {
+                $validator->errors()->add('end_date', 'La date de fin doit être égale ou postérieure à la date de début.');
+            }
+        });
+    }
+
     public function rules(): array
     {
+        $updating = $this->isMethod('PUT') || $this->isMethod('PATCH');
+        $required = $updating ? 'sometimes' : 'required';
+        $event = $this->route('event');
+        $startDate = $this->input('date', $event instanceof \App\Models\Event ? $event->date : null);
+        $slugRule = Rule::unique('events', 'slug');
+        if ($updating && $this->route('event') instanceof \App\Models\Event) {
+            $slugRule->ignore($this->route('event'));
+        }
+
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', Rule::unique('events', 'slug')],
+            'title' => [$required, 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', $slugRule],
             'description' => ['nullable', 'string'],
             'full_description' => ['nullable', 'string'],
-            'date' => ['required', 'string'],
-            'end_date' => ['nullable', 'string'],
-            'time' => ['required', 'string'],
-            'end_time' => ['nullable', 'string'],
-            'location' => ['required', 'string', 'max:255'],
+            'date' => [$required, 'date_format:Y-m-d'],
+            'end_date' => array_filter(['nullable', 'date_format:Y-m-d', is_string($startDate) && $startDate !== '' ? 'after_or_equal:'.$startDate : null]),
+            'time' => [$required, 'string'],
+            'end_time' => ['nullable', 'regex:/^(?:[01]?\d|2[0-3])(?:h|:)[0-5]\d(?::[0-5]\d)?$/i'],
+            'location' => [$required, 'string', 'max:255'],
             'venue_details' => ['nullable', 'string', 'max:255'],
-            'type' => ['required', Rule::in(['workshop', 'celebration', 'seminar', 'gala', 'conference'])],
-            'status' => ['nullable', Rule::in(['upcoming', 'past'])],
+            'type' => [$required, Rule::in(['workshop', 'celebration', 'seminar', 'gala', 'conference'])],
+            'status' => ['sometimes', 'required', Rule::in(['upcoming', 'past'])],
             'image' => ['nullable', 'string', 'max:500'],
             'agenda' => ['nullable', 'array'],
             'agenda.*.day' => ['required_with:agenda', 'string'],

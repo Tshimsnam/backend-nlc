@@ -126,6 +126,8 @@
 <div class="bg-white rounded-lg shadow">
     <div class="p-6 border-b">
         <h3 class="text-xl font-bold text-gray-800">Liste des événements</h3>
+        <p class="text-sm text-gray-500 mt-2">Le statut « Terminé » ferme les inscriptions. La clôture automatique utilise la date et l’heure de fin (Kinshasa), ou la fin du dernier jour si l’heure n’est pas renseignée.</p>
+        @error('status')<p class="text-sm text-red-700 mt-2" role="alert">{{ $message }}</p>@enderror
     </div>
 
     <!-- Filtres -->
@@ -155,6 +157,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titre</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lieu</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Billets</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarifs</th>
                 </tr>
@@ -165,12 +168,27 @@
                         <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $event->title }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $event->location }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ \Carbon\Carbon::parse($event->date)->format('d/m/Y') }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            <form method="POST" action="{{ route('admin.events.status', $event) }}" class="flex items-center gap-2">
+                                @csrf
+                                @method('PUT')
+                                <label for="event-status-{{ $event->id }}" class="sr-only">Statut de {{ $event->title }}</label>
+                                <select id="event-status-{{ $event->id }}" name="status" class="rounded-lg border border-gray-300 px-3 py-2">
+                                    <option value="upcoming" @selected($event->status === 'upcoming')>À venir</option>
+                                    <option value="past" @selected($event->status === 'past')>Terminé</option>
+                                </select>
+                                <button type="submit" class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2">Enregistrer</button>
+                            </form>
+                            @if($event->hasEnded() && $event->status !== 'past')
+                                <p class="mt-2 text-xs text-gray-500">Terminé : inscriptions closes, archivage automatique en attente.</p>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $event->tickets_count }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $event->event_prices_count }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">Aucun événement trouvé</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">Aucun événement trouvé</td>
                     </tr>
                 @endforelse
             </tbody>

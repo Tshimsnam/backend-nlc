@@ -1,5 +1,7 @@
 <?php
 
+\Illuminate\Support\Facades\Schedule::command('events:close-finished')->everyMinute()->withoutOverlapping();
+
 \Illuminate\Support\Facades\Artisan::command('orientation:maintain', function () {
     app(\App\Services\Orientation\Maintenance::class)->run();
     $this->info('Échéances, rappels, alertes 72h et reprises de notifications traités.');
