@@ -789,10 +789,11 @@ class DashboardController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'date' => 'required|date',
-            'end_date' => 'nullable|date',
+            'date' => 'required|date_format:Y-m-d',
+            'end_date' => 'nullable|date_format:Y-m-d|after_or_equal:date',
+            'status' => 'sometimes|required|in:upcoming,past',
             'time' => 'nullable|string|max:50',
-            'end_time' => 'nullable|string|max:50',
+            'end_time' => ['nullable', 'regex:/^(?:[01]?\d|2[0-3])(?:h|:)[0-5]\d(?::[0-5]\d)?$/i'],
             'location' => 'required|string|max:255',
             'venue_details' => 'nullable|string|max:255',
             'max_participants' => 'nullable|integer|min:1',
@@ -811,6 +812,10 @@ class DashboardController extends Controller
         ]);
 
         $event = Event::findOrFail($id);
+
+        if ($request->has('status')) {
+            $event->status = $request->status;
+        }
         
         $event->update([
             'title' => $request->title,

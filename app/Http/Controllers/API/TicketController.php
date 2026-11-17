@@ -53,6 +53,7 @@ class TicketController extends Controller
 
     public function store(StoreTicketRequest $request, Event $event): JsonResponse
     {
+        $event->assertRegistrationOpen();
         $validated = $request->validated();
 
         $price = EventPrice::where('id', $validated['event_price_id'])
