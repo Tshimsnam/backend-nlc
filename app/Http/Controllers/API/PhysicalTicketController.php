@@ -84,6 +84,8 @@ class PhysicalTicketController extends Controller
         ]);
 
         // Vérifier que le physical_qr_id commence par "PHY-"
+        Event::findOrFail($validated['event_id'])->assertRegistrationOpen();
+
         if (!str_starts_with($validated['physical_qr_id'], 'PHY-')) {
             return response()->json([
                 'success' => false,

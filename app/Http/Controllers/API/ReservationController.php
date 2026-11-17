@@ -20,6 +20,7 @@ class ReservationController extends Controller
      */
     public function createReservation(Request $request, Event $event): JsonResponse
     {
+        $event->assertRegistrationOpen();
         $validated = $request->validate([
             'event_price_id' => ['required', 'integer', 'exists:event_prices,id'],
         ]);
@@ -89,6 +90,8 @@ class ReservationController extends Controller
                 'reference' => $reference,
             ], 404);
         }
+
+        $ticket->event->assertRegistrationOpen();
 
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255', 'min:3'],

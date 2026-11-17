@@ -44,7 +44,7 @@ class SendConsortiumMail implements ShouldBeUnique, ShouldQueue
 
             return;
         }
-        Mail::send('emails.consortium', ['notification' => $notification], function ($mail) use ($notification) {
+        Mail::send(['html' => 'emails.consortium', 'text' => 'emails.consortium-text'], ['notification' => $notification], function ($mail) use ($notification) {
             $mail->to($notification->recipient)->subject('NLC Consortium — '.$notification->title);
         });
         $notification->update(['email_status' => 'sent', 'sent_at' => now()]);
